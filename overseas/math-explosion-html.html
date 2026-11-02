@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>数学符号爆炸特效</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: system-ui, -apple-system, sans-serif; background: #111827; color: white; min-height: 100vh; padding: 20px; }
+    h1 { text-align: center; margin-bottom: 20px; font-size: 24px; }
+    .container { display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; }
+    .preview-area { flex: 1; min-width: 300px; max-width: 700px; }
+    .canvas-container { position: relative; overflow: hidden; border-radius: 8px; border: 2px solid #4b5563; background: #1a1a2e; margin: 0 auto; }
+    .particle { position: absolute; font-weight: bold; color: white; text-shadow: 1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 2px 2px 3px rgba(0,0,0,0.5); white-space: nowrap; pointer-events: none; font-family: 'Courier New', monospace; transform: translate(-50%, -50%); }
+    .center-dot { position: absolute; width: 10px; height: 10px; background: #ef4444; border-radius: 50%; border: 2px solid white; transform: translate(-50%, -50%); cursor: move; z-index: 100; }
+    .buttons { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 15px; }
+    .btn { padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500; transition: all 0.2s; }
+    .btn:hover { transform: translateY(-1px); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+    .btn-blue { background: #2563eb; color: white; }
+    .btn-blue:hover { background: #1d4ed8; }
+    .btn-green { background: #16a34a; color: white; }
+    .btn-green:hover { background: #15803d; }
+    .btn-purple { background: #9333ea; color: white; }
+    .btn-purple:hover { background: #7e22ce; }
+    .btn-orange { background: #ea580c; color: white; }
+    .btn-orange:hover { background: #c2410c; }
+    .controls { width: 280px; background: #1f2937; padding: 20px; border-radius: 8px; }
+    .controls h2 { font-size: 16px; border-bottom: 1px solid #4b5563; padding-bottom: 10px; margin-bottom: 15px; }
+    .control-group { margin-bottom: 15px; }
+    .control-group label { display: block; font-size: 13px; margin-bottom: 5px; color: #d1d5db; }
+    .control-group input[type="range"] { width: 100%; cursor: pointer; }
+    .control-row { display: flex; gap: 10px; }
+    .control-row > div { flex: 1; }
+    .tips { font-size: 11px; color: #9ca3af; border-top: 1px solid #4b5563; padding-top: 15px; margin-top: 15px; }
+    .tips ul { padding-left: 16px; }
+    .tips li { margin-bottom: 5px; }
+    .file-input { display: none; }
+    .progress { margin-top: 10px; text-align: center; font-size: 14px; color: #fbbf24; }
+    #exportCanvas { display: none; }
+  </style>
+</head>
+<body>
+  <h1>✨ 数学符号爆炸特效</h1>
+  
+  <div class="container">
+    <div class="preview-area">
+      <div class="canvas-container" id="canvasContainer">
+        <div class="center-dot" id="centerDot"></div>
+      </div>
+      <canvas id="exportCanvas"></canvas>
+      
+      <div class="buttons">
+        <label class="btn btn-blue">
+          📁 上传图片
+          <input type="file" accept="image/*" id="imageInput" class="file-input">
+        </label>
+        <button class="btn btn-green" id="toggleBtn">⏸ 暂停</button>
+        <button class="btn btn-purple" id="exportPngBtn">📷 导出PNG</button>
+        <button class="btn btn-orange" id="exportGifBtn">🎬 导出GIF</button>
+      </div>
+      <div class="progress" id="progress"></div>
+    </div>
+    
+    <div class="controls">
+      <h2>⚙️ 参数设置</h2>
+      
+      <div class="control-group">
+        <label>飞行速度: <span id="speedVal">80</span></label>
+        <input type="range" id="speed" min="20" max="200" value="80">
+      </div>
+      
+      <div class="control-group">
+        <label>消失半径: <span id="radiusVal">90</span>%</label>
+        <input type="range" id="radius" min="50" max="100" value="90">
+      </div>
+      
+      <div class="control-group">
+        <label>生成间隔: <span id="intervalVal">150</span>ms</label>
+        <input type="range" id="interval" min="50" max="500" value="150">
+      </div>
+      
+      <div class="control-group">
+        <label>初始字体: <span id="fontSizeVal">8</span>px</label>
+        <input type="range" id="fontSize" min="4" max="24" value="8">
+      </div>
+      
+      <div class="control-group">
+        <label>变大速度: <span id="growthVal">0.15</span></label>
+        <input type="range" id="growth" min="5" max="50" value="15">
+      </div>
+      
+      <div class="control-group">
+        <label>淡出起点: <span id="fadeVal">30</span>%</label>
+        <input type="range" id="fade" min="10" max="80" value="30">
+      </div>
+      
+      <div class="control-group">
+        <label>中心点位置</label>
+        <div class="control-row">
+          <div>
+            <label>X: <span id="centerXVal">50</span>%</label>
+            <input type="range" id="centerX" min="0" max="100" value="50">
+          </div>
+          <div>
+            <label>Y: <span id="centerYVal">50</span>%</label>
+            <input type="range" id="centerY" min="0" max="100" value="50">
+          </div>
+        </div>
+      </div>
+      
+      <div class="tips">
+        <p>💡 提示：</p>
+        <ul>
+          <li>上传图片后特效自动适配尺寸</li>
+          <li>红点表示爆炸中心点</li>
+          <li>导出与原图比例一致</li>
+          <li>GIF为2秒24帧动画</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const mathSymbols = [
+      '∑', '∏', '∫', '∂', '∇', '∞', '√', 'π', 'θ', 'λ', 'μ', 'σ', 'Δ', 'Ω', 'α', 'β', 'γ', 'ε',
+      '±', '×', '÷', '≠', '≈', '≤', '≥', '∈', '∉', '⊂', '⊃', '∪', '∩', '∧', '∨', '⊥', '∥',
+      'sin', 'cos', 'tan', 'log', 'ln', 'lim', 'exp', 'max', 'min',
+      'f(x)', 'g(x)', 'dy/dx', '∫dx', 'Σn', 'n!', 'xⁿ', 'eˣ', '|x|',
+      '1+1=3?', '2×2=5?', '3+3=7?', '4÷2=3?', '5-2=4?', '6×3=17?', '7+8=14?', '9-4=6?',
+      'x²+y²=r²', 'E=mc²', 'a²+b²=c²', 'F=ma', 'PV=nRT',
+      '∮', '⊕', '⊗', '≡', '∝', '∀', '∃', '¬', '→', '↔', '⇒', '⇔',
+      'φ', 'ψ', 'ω', 'ζ', 'η', 'ξ', 'ρ', 'τ', 'υ', 'χ',
+      '∅', 'ℕ', 'ℤ', 'ℚ', 'ℝ', 'ℂ', '℘', 'ℵ',
+      'matrix', 'det', 'rank', 'dim', 'ker',
+      '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
+      '+', '-', '=', '<', '>', '(', ')', '[', ']', '{', '}'
+    ];
+
+    let settings = { speed: 80, radius: 0.9, interval: 150, fontSize: 8, growth: 0.15, fade: 0.3, centerX: 50, centerY: 50 };
+    let imgSize = { width: 600, height: 400 };
+    let particles = [];
+    let isRunning = true;
+    let lastSpawn = 0;
+    let particleId = 0;
+    let uploadedImage = null;
+    let animationId = null;
+
+    const container = document.getElementById('canvasContainer');
+    const centerDot = document.getElementById('centerDot');
+    const exportCanvas = document.getElementById('exportCanvas');
+    const progress = document.getElementById('progress');
+
+    function getRandomMath() { return mathSymbols[Math.floor(Math.random() * mathSymbols.length)]; }
+
+    function updateContainerSize() {
+      const maxWidth = Math.min(600, window.innerWidth - 340);
+      const scale = maxWidth / imgSize.width;
+      const displayWidth = imgSize.width * scale;
+      const displayHeight = imgSize.height * scale;
+      container.style.width = displayWidth + 'px';
+      container.style.height = displayHeight + 'px';
+      if (uploadedImage) {
+        container.style.backgroundImage = `url(${uploadedImage})`;
+        container.style.backgroundSize = 'cover';
+        container.style.backgroundPosition = 'center';
+      }
+      updateCenterDot();
+    }
+
+    function updateCenterDot() {
+      centerDot.style.left = settings.centerX + '%';
+      centerDot.style.top = settings.centerY + '%';
+    }
+
+    function spawnParticle() {
+      return { id: particleId++, text: getRandomMath(), angle: Math.random() * Math.PI * 2, distance: 0 };
+    }
+
+    function renderParticles() {
+      const existingEls = container.querySelectorAll('.particle');
+      existingEls.forEach(el => el.remove());
+
+      const maxDist = Math.min(imgSize.width, imgSize.height) * settings.radius / 2;
+      const rect = container.getBoundingClientRect();
+      const scaleX = rect.width / imgSize.width;
+      const scaleY = rect.height / imgSize.height;
+
+      particles.forEach(p => {
+        const prog = p.distance / maxDist;
+        const size = settings.fontSize + p.distance * settings.growth;
+        const opacity = prog < settings.fade ? 1 : 1 - (prog - settings.fade) / (1 - settings.fade);
+        const cx = (settings.centerX / 100) * imgSize.width;
+        const cy = (settings.centerY / 100) * imgSize.height;
+        const x = (cx + Math.cos(p.angle) * p.distance) * scaleX;
+        const y = (cy + Math.sin(p.angle) * p.distance) * scaleY;
+
+        const el = document.createElement('div');
+        el.className = 'particle';
+        el.textContent = p.text;
+        el.style.left = x + 'px';
+        el.style.top = y + 'px';
+        el.style.fontSize = size * Math.min(scaleX, scaleY) + 'px';
+        el.style.opacity = Math.max(0, opacity);
+        container.appendChild(el);
+      });
+    }
+
+    let lastTime = Date.now();
+    function animate() {
+      if (!isRunning) { animationId = requestAnimationFrame(animate); return; }
+      
+      const now = Date.now();
+      const delta = (now - lastTime) / 1000;
+      lastTime = now;
+
+      if (now - lastSpawn > settings.interval) {
+        particles.push(spawnParticle());
+        lastSpawn = now;
+      }
+
+      const maxDist = Math.min(imgSize.width, imgSize.height) * settings.radius / 2;
+      particles = particles.map(p => ({ ...p, distance: p.distance + settings.speed * delta })).filter(p => p.distance < maxDist);
+      
+      renderParticles();
+      animationId = requestAnimationFrame(animate);
+    }
+
+    function captureFrame() {
+      return new Promise(resolve => {
+        const ctx = exportCanvas.getContext('2d');
+        exportCanvas.width = imgSize.width;
+        exportCanvas.height = imgSize.height;
+
+        const drawContent = () => {
+          const maxDist = Math.min(imgSize.width, imgSize.height) * settings.radius / 2;
+          const cx = (settings.centerX / 100) * imgSize.width;
+          const cy = (settings.centerY / 100) * imgSize.height;
+
+          particles.forEach(p => {
+            const prog = p.distance / maxDist;
+            const size = settings.fontSize + p.distance * settings.growth;
+            const opacity = prog < settings.fade ? 1 : 1 - (prog - settings.fade) / (1 - settings.fade);
+            const x = cx + Math.cos(p.angle) * p.distance;
+            const y = cy + Math.sin(p.angle) * p.distance;
+
+            ctx.save();
+            ctx.font = `bold ${size}px 'Courier New', monospace`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.globalAlpha = Math.max(0, opacity);
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 3;
+            ctx.strokeText(p.text, x, y);
+            ctx.fillStyle = '#fff';
+            ctx.fillText(p.text, x, y);
+            ctx.restore();
+          });
+          resolve(exportCanvas.toDataURL('image/png'));
+        };
+
+        if (uploadedImage) {
+          const img = new Image();
+          img.onload = () => { ctx.drawImage(img, 0, 0, imgSize.width, imgSize.height); drawContent(); };
+          img.src = uploadedImage;
+        } else {
+          ctx.fillStyle = '#1a1a2e';
+          ctx.fillRect(0, 0, imgSize.width, imgSize.height);
+          drawContent();
+        }
+      });
+    }
+
+    async function exportPng() {
+      const dataUrl = await captureFrame();
+      const link = document.createElement('a');
+      link.download = 'math-explosion.png';
+      link.href = dataUrl;
+      link.click();
+    }
+
+    async function exportGif() {
+      const exportBtn = document.getElementById('exportGifBtn');
+      exportBtn.disabled = true;
+      progress.textContent = '准备导出...';
+
+      const frames = [];
+      const totalFrames = 24;
+      const frameInterval = 2000 / totalFrames;
+      const wasRunning = isRunning;
+      isRunning = false;
+
+      await new Promise(r => setTimeout(r, 100));
+      const savedParticles = JSON.parse(JSON.stringify(particles));
+      const maxDist = Math.min(imgSize.width, imgSize.height) * settings.radius / 2;
+
+      for (let i = 0; i < totalFrames; i++) {
+        const frameParticles = savedParticles.map(p => ({ ...p, distance: p.distance + (settings.speed * frameInterval / 1000) * i })).filter(p => p.distance < maxDist);
+        
+        const spawnCount = Math.floor((i * frameInterval) / settings.interval);
+        for (let j = 0; j < spawnCount; j++) {
+          const angle = Math.random() * Math.PI * 2;
+          const elapsed = (i * frameInterval) - (j * settings.interval);
+          if (elapsed > 0) {
+            const dist = settings.speed * elapsed / 1000;
+            if (dist < maxDist) frameParticles.push({ id: `s-${i}-${j}`, text: getRandomMath(), angle, distance: dist });
+          }
+        }
+
+        particles = frameParticles;
+        renderParticles();
+        await new Promise(r => setTimeout(r, 30));
+        frames.push(await captureFrame());
+        progress.textContent = `捕获帧 ${i + 1}/${totalFrames}...`;
+      }
+
+      particles = savedParticles;
+      if (wasRunning) isRunning = true;
+
+      progress.textContent = '生成GIF中...';
+      const gif = new GIF({ workers: 2, quality: 10, width: imgSize.width, height: imgSize.height, workerScript: 'https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.worker.js' });
+
+      for (const frame of frames) {
+        const img = new Image();
+        img.src = frame;
+        await new Promise(r => img.onload = r);
+        gif.addFrame(img, { delay: Math.round(frameInterval) });
+      }
+
+      gif.on('finished', blob => {
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.download = 'math-explosion.gif';
+        link.href = url;
+        link.click();
+        URL.revokeObjectURL(url);
+        exportBtn.disabled = false;
+        progress.textContent = '导出完成！';
+        setTimeout(() => progress.textContent = '', 3000);
+      });
+
+      gif.render();
+    }
+
+    // Event Listeners
+    document.getElementById('imageInput').addEventListener('change', e => {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = ev => {
+          const img = new Image();
+          img.onload = () => {
+            imgSize = { width: img.width, height: img.height };
+            uploadedImage = ev.target.result;
+            updateContainerSize();
+          };
+          img.src = ev.target.result;
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+
+    document.getElementById('toggleBtn').addEventListener('click', function() {
+      isRunning = !isRunning;
+      this.textContent = isRunning ? '⏸ 暂停' : '▶ 播放';
+      if (isRunning) lastTime = Date.now();
+    });
+
+    document.getElementById('exportPngBtn').addEventListener('click', exportPng);
+    document.getElementById('exportGifBtn').addEventListener('click', exportGif);
+
+    const controls = [
+      { id: 'speed', key: 'speed', val: 'speedVal', transform: v => v },
+      { id: 'radius', key: 'radius', val: 'radiusVal', transform: v => v / 100 },
+      { id: 'interval', key: 'interval', val: 'intervalVal', transform: v => v },
+      { id: 'fontSize', key: 'fontSize', val: 'fontSizeVal', transform: v => v },
+      { id: 'growth', key: 'growth', val: 'growthVal', transform: v => v / 100, display: v => (v / 100).toFixed(2) },
+      { id: 'fade', key: 'fade', val: 'fadeVal', transform: v => v / 100 },
+      { id: 'centerX', key: 'centerX', val: 'centerXVal', transform: v => v, cb: updateCenterDot },
+      { id: 'centerY', key: 'centerY', val: 'centerYVal', transform: v => v, cb: updateCenterDot }
+    ];
+
+    controls.forEach(c => {
+      document.getElementById(c.id).addEventListener('input', function() {
+        const v = parseInt(this.value);
+        settings[c.key] = c.transform(v);
+        document.getElementById(c.val).textContent = c.display ? c.display(v) : v;
+        if (c.cb) c.cb();
+      });
+    });
+
+    window.addEventListener('resize', updateContainerSize);
+    updateContainerSize();
+    animate();
+  </script>
+</body>
+</html>

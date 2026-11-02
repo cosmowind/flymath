@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>数学符号爆炸特效</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: system-ui, -apple-system, sans-serif; background: #111827; color: white; min-height: 100vh; padding: 20px; }
+    h1 { text-align: center; margin-bottom: 20px; font-size: 24px; }
+    .container { display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; }
+    .preview-area { flex: 1; min-width: 300px; max-width: 700px; }
+    .canvas-container { position: relative; overflow: hidden; border-radius: 8px; border: 2px solid #4b5563; background: #1a1a2e; margin: 0 auto; }
+    .particle { position: absolute; font-weight: bold; color: white; text-shadow: 1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 2px 2px 3px rgba(0,0,0,0.5); white-space: nowrap; pointer-events: none; font-family: 'Courier New', monospace; transform: translate(-50%, -50%); }
+    .center-dot { position: absolute; width: 10px; height: 10px; background: #ef4444; border-radius: 50%; border: 2px solid white; transform: translate(-50%, -50%); z-index: 100; }
+    .buttons { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 15px; }
+    .btn { padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500; transition: all 0.2s; }
+    .btn:hover { transform: translateY(-1px); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+    .btn-blue { background: #2563eb; color: white; }
+    .btn-green { background: #16a34a; color: white; }
+    .btn-purple { background: #9333ea; color: white; }
+    .btn-orange { background: #ea580c; color: white; }
+    .controls { width: 280px; background: #1f2937; padding: 20px; border-radius: 8px; }
+    .controls h2 { font-size: 16px; border-bottom: 1px solid #4b5563; padding-bottom: 10px; margin-bottom: 15px; }
+    .control-group { margin-bottom: 15px; }
+    .control-group label { display: block; font-size: 13px; margin-bottom: 5px; color: #d1d5db; }
+    .control-group input[type="range"] { width: 100%; cursor: pointer; }
+    .control-row { display: flex; gap: 10px; }
+    .control-row > div { flex: 1; }
+    .tips { font-size: 11px; color: #9ca3af; border-top: 1px solid #4b5563; padding-top: 15px; margin-top: 15px; }
+    .tips ul { padding-left: 16px; }
+    .tips li { margin-bottom: 5px; }
+    .file-input { display: none; }
+    .progress { margin-top: 10px; text-align: center; font-size: 14px; color: #fbbf24; min-height: 20px; }
+    #exportCanvas { display: none; }
+  </style>
+</head>
+<body>
+  <h1>✨ 数学符号爆炸特效</h1>
+  <div class="container">
+    <div class="preview-area">
+      <div class="canvas-container" id="canvasContainer">
+        <div class="center-dot" id="centerDot"></div>
+      </div>
+      <canvas id="exportCanvas"></canvas>
+      <div class="buttons">
+        <label class="btn btn-blue">📁 上传图片<input type="file" accept="image/*" id="imageInput" class="file-input"></label>
+        <button class="btn btn-green" id="toggleBtn">⏸ 暂停</button>
+        <button class="btn btn-purple" id="exportPngBtn">📷 导出PNG</button>
+        <button class="btn btn-orange" id="exportGifBtn">🎬 导出GIF</button>
+      </div>
+      <div class="progress" id="progress"></div>
+    </div>
+    <div class="controls">
+      <h2>⚙️ 参数设置</h2>
+      <div class="control-group"><label>飞行速度: <span id="speedVal">80</span></label><input type="range" id="speed" min="20" max="200" value="80"></div>
+      <div class="control-group"><label>消失半径: <span id="radiusVal">90</span>%</label><input type="range" id="radius" min="50" max="100" value="90"></div>
+      <div class="control-group"><label>生成间隔: <span id="intervalVal">150</span>ms</label><input type="range" id="interval" min="50" max="500" value="150"></div>
+      <div class="control-group"><label>初始字体: <span id="fontSizeVal">8</span>px</label><input type="range" id="fontSize" min="4" max="24" value="8"></div>
+      <div class="control-group"><label>变大速度: <span id="growthVal">0.15</span></label><input type="range" id="growth" min="5" max="50" value="15"></div>
+      <div class="control-group"><label>淡出起点: <span id="fadeVal">30</span>%</label><input type="range" id="fade" min="10" max="80" value="30"></div>
+      <div class="control-group">
+        <label>中心点位置</label>
+        <div class="control-row">
+          <div><label>X: <span id="centerXVal">50</span>%</label><input type="range" id="centerX" min="0" max="100" value="50"></div>
+          <div><label>Y: <span id="centerYVal">50</span>%</label><input type="range" id="centerY" min="0" max="100" value="50"></div>
+        </div>
+      </div>
+      <div class="tips"><p>💡 提示：</p><ul><li>上传图片后特效自动适配尺寸</li><li>红点表示爆炸中心点</li><li>导出与原图比例一致</li><li>GIF为2秒24帧动画</li></ul></div>
+    </div>
+  </div>
+
+<script>
+const mathSymbols=['∑','∏','∫','∂','∇','∞','√','π','θ','λ','μ','σ','Δ','Ω','α','β','γ','ε','±','×','÷','≠','≈','≤','≥','∈','∉','⊂','⊃','∪','∩','∧','∨','⊥','∥','sin','cos','tan','log','ln','lim','exp','max','min','f(x)','g(x)','dy/dx','∫dx','Σn','n!','xⁿ','eˣ','|x|','1+1=3?','2×2=5?','3+3=7?','4÷2=3?','5-2=4?','6×3=17?','x²+y²=r²','E=mc²','a²+b²=c²','F=ma','∮','⊕','⊗','≡','∝','∀','∃','¬','→','↔','⇒','⇔','φ','ψ','ω','ζ','η','ξ','ρ','τ','∅','ℕ','ℤ','ℚ','ℝ','ℂ','0','1','2','3','4','5','6','7','8','9','+','-','=','<','>','(',')','[',']','{','}'];
+let settings={speed:80,radius:0.9,interval:150,fontSize:8,growth:0.15,fade:0.3,centerX:50,centerY:50};
+let imgSize={width:600,height:400},particles=[],isRunning=true,lastSpawn=0,particleId=0,uploadedImage=null,lastTime=Date.now();
+const container=document.getElementById('canvasContainer'),centerDot=document.getElementById('centerDot'),exportCanvas=document.getElementById('exportCanvas'),progress=document.getElementById('progress');
+const getRandomMath=()=>mathSymbols[Math.floor(Math.random()*mathSymbols.length)];
+function updateContainerSize(){const maxW=Math.min(600,window.innerWidth-340),scale=maxW/imgSize.width,dW=imgSize.width*scale,dH=imgSize.height*scale;container.style.width=dW+'px';container.style.height=dH+'px';if(uploadedImage){container.style.backgroundImage=`url(${uploadedImage})`;container.style.backgroundSize='cover';container.style.backgroundPosition='center';}updateCenterDot();}
+function updateCenterDot(){centerDot.style.left=settings.centerX+'%';centerDot.style.top=settings.centerY+'%';}
+function spawnParticle(){return{id:particleId++,text:getRandomMath(),angle:Math.random()*Math.PI*2,distance:0};}
+function renderParticles(){container.querySelectorAll('.particle').forEach(el=>el.remove());const maxDist=Math.min(imgSize.width,imgSize.height)*settings.radius/2,rect=container.getBoundingClientRect(),scaleX=rect.width/imgSize.width,scaleY=rect.height/imgSize.height;particles.forEach(p=>{const prog=p.distance/maxDist,size=settings.fontSize+p.distance*settings.growth,opacity=prog<settings.fade?1:1-(prog-settings.fade)/(1-settings.fade),cx=(settings.centerX/100)*imgSize.width,cy=(settings.centerY/100)*imgSize.height,x=(cx+Math.cos(p.angle)*p.distance)*scaleX,y=(cy+Math.sin(p.angle)*p.distance)*scaleY,el=document.createElement('div');el.className='particle';el.textContent=p.text;el.style.left=x+'px';el.style.top=y+'px';el.style.fontSize=size*Math.min(scaleX,scaleY)+'px';el.style.opacity=Math.max(0,opacity);container.appendChild(el);});}
+function animate(){if(isRunning){const now=Date.now(),delta=(now-lastTime)/1000;lastTime=now;if(now-lastSpawn>settings.interval){particles.push(spawnParticle());lastSpawn=now;}const maxDist=Math.min(imgSize.width,imgSize.height)*settings.radius/2;particles=particles.map(p=>({...p,distance:p.distance+settings.speed*delta})).filter(p=>p.distance<maxDist);renderParticles();}else{lastTime=Date.now();}requestAnimationFrame(animate);}
+function captureFrame(){return new Promise(resolve=>{const ctx=exportCanvas.getContext('2d');exportCanvas.width=imgSize.width;exportCanvas.height=imgSize.height;const drawContent=()=>{const maxDist=Math.min(imgSize.width,imgSize.height)*settings.radius/2,cx=(settings.centerX/100)*imgSize.width,cy=(settings.centerY/100)*imgSize.height;particles.forEach(p=>{const prog=p.distance/maxDist,size=settings.fontSize+p.distance*settings.growth,opacity=prog<settings.fade?1:1-(prog-settings.fade)/(1-settings.fade),x=cx+Math.cos(p.angle)*p.distance,y=cy+Math.sin(p.angle)*p.distance;ctx.save();ctx.font=`bold ${size}px 'Courier New', monospace`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.globalAlpha=Math.max(0,opacity);ctx.strokeStyle='#000';ctx.lineWidth=3;ctx.strokeText(p.text,x,y);ctx.fillStyle='#fff';ctx.fillText(p.text,x,y);ctx.restore();});resolve(exportCanvas.toDataURL('image/png'));};if(uploadedImage){const img=new Image();img.onload=()=>{ctx.drawImage(img,0,0,imgSize.width,imgSize.height);drawContent();};img.src=uploadedImage;}else{ctx.fillStyle='#1a1a2e';ctx.fillRect(0,0,imgSize.width,imgSize.height);drawContent();}});}
+async function exportPng(){const dataUrl=await captureFrame(),link=document.createElement('a');link.download='math-explosion.png';link.href=dataUrl;link.click();}
+
+class SimpleGIF{constructor(w,h){this.width=w;this.height=h;this.frames=[];this.delays=[];}
+addFrame(canvas,delay){const ctx=canvas.getContext('2d'),imageData=ctx.getImageData(0,0,this.width,this.height);this.frames.push(imageData);this.delays.push(delay);}
+render(){const frames=this.frames,delays=this.delays,width=this.width,height=this.height;
+function createGIF(){const stream={data:[],write(s){for(let i=0;i<s.length;i++)stream.data.push(s.charCodeAt(i));},writeByte(b){stream.data.push(b);},writeBytes(arr){for(let i=0;i<arr.length;i++)stream.data.push(arr[i]);}};
+stream.write('GIF89a');
+stream.writeByte(width&255);stream.writeByte((width>>8)&255);
+stream.writeByte(height&255);stream.writeByte((height>>8)&255);
+stream.writeByte(0xF7);stream.writeByte(0);stream.writeByte(0);
+for(let i=0;i<256;i++){stream.writeByte(i);stream.writeByte(i);stream.writeByte(i);}
+stream.writeByte(0x21);stream.writeByte(0xFF);stream.writeByte(11);
+stream.write('NETSCAPE2.0');stream.writeByte(3);stream.writeByte(1);
+stream.writeByte(0);stream.writeByte(0);stream.writeByte(0);
+for(let f=0;f<frames.length;f++){const frame=frames[f],delay=Math.round(delays[f]/10);
+stream.writeByte(0x21);stream.writeByte(0xF9);stream.writeByte(4);
+stream.writeByte(0x04);stream.writeByte(delay&255);stream.writeByte((delay>>8)&255);
+stream.writeByte(0);stream.writeByte(0);
+stream.writeByte(0x2C);stream.writeByte(0);stream.writeByte(0);stream.writeByte(0);stream.writeByte(0);
+stream.writeByte(width&255);stream.writeByte((width>>8)&255);
+stream.writeByte(height&255);stream.writeByte((height>>8)&255);
+stream.writeByte(0);
+const pixels=[],data=frame.data;
+for(let i=0;i<data.length;i+=4){const r=data[i],g=data[i+1],b=data[i+2];
+pixels.push(Math.round(0.299*r+0.587*g+0.114*b));}
+const minCodeSize=8;stream.writeByte(minCodeSize);
+const lzw=encodeLZW(pixels,minCodeSize);
+let pos=0;while(pos<lzw.length){const chunk=Math.min(255,lzw.length-pos);
+stream.writeByte(chunk);for(let i=0;i<chunk;i++)stream.writeByte(lzw[pos++]);}
+stream.writeByte(0);}
+stream.writeByte(0x3B);return new Uint8Array(stream.data);}
+function encodeLZW(pixels,minCodeSize){const clearCode=1<<minCodeSize,eoiCode=clearCode+1;
+let codeSize=minCodeSize+1,nextCode=eoiCode+1,dict={},bits=0,buf=0,output=[];
+function emit(code){buf|=code<<bits;bits+=codeSize;while(bits>=8){output.push(buf&255);buf>>=8;bits-=8;}}
+emit(clearCode);
+for(let i=0;i<256;i++)dict[String.fromCharCode(i)]=i;
+let current='';
+for(let i=0;i<pixels.length;i++){const pixel=String.fromCharCode(pixels[i]),combined=current+pixel;
+if(dict[combined]!==undefined){current=combined;}else{emit(dict[current]);
+if(nextCode<4096){dict[combined]=nextCode++;if(nextCode>1<<codeSize&&codeSize<12)codeSize++;}
+else{emit(clearCode);dict={};for(let j=0;j<256;j++)dict[String.fromCharCode(j)]=j;
+nextCode=eoiCode+1;codeSize=minCodeSize+1;}
+current=pixel;}}
+if(current)emit(dict[current]);emit(eoiCode);
+if(bits>0)output.push(buf&255);return output;}
+return createGIF();}}
+
+async function exportGif(){const btn=document.getElementById('exportGifBtn');btn.disabled=true;progress.textContent='准备导出...';
+const totalFrames=24,frameInterval=2000/totalFrames,wasRunning=isRunning;isRunning=false;
+await new Promise(r=>setTimeout(r,100));
+const savedParticles=JSON.parse(JSON.stringify(particles)),maxDist=Math.min(imgSize.width,imgSize.height)*settings.radius/2;
+const gif=new SimpleGIF(imgSize.width,imgSize.height),tempCanvas=document.createElement('canvas');
+tempCanvas.width=imgSize.width;tempCanvas.height=imgSize.height;
+const seedAngles=[];for(let i=0;i<100;i++)seedAngles.push(Math.random()*Math.PI*2);
+for(let i=0;i<totalFrames;i++){const frameParticles=savedParticles.map(p=>({...p,distance:p.distance+(settings.speed*frameInterval/1000)*i})).filter(p=>p.distance<maxDist);
+const spawnCount=Math.floor((i*frameInterval)/settings.interval);
+for(let j=0;j<spawnCount;j++){const elapsed=(i*frameInterval)-(j*settings.interval);
+if(elapsed>0){const dist=settings.speed*elapsed/1000;
+if(dist<maxDist)frameParticles.push({id:`s-${i}-${j}`,text:getRandomMath(),angle:seedAngles[j%100],distance:dist});}}
+particles=frameParticles;
+const ctx=tempCanvas.getContext('2d');
+if(uploadedImage){const img=new Image();img.src=uploadedImage;await new Promise(r=>img.onload=r);ctx.drawImage(img,0,0,imgSize.width,imgSize.height);}
+else{ctx.fillStyle='#1a1a2e';ctx.fillRect(0,0,imgSize.width,imgSize.height);}
+const cx=(settings.centerX/100)*imgSize.width,cy=(settings.centerY/100)*imgSize.height;
+particles.forEach(p=>{const prog=p.distance/maxDist,size=settings.fontSize+p.distance*settings.growth,opacity=prog<settings.fade?1:1-(prog-settings.fade)/(1-settings.fade),x=cx+Math.cos(p.angle)*p.distance,y=cy+Math.sin(p.angle)*p.distance;
+ctx.save();ctx.font=`bold ${size}px 'Courier New', monospace`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.globalAlpha=Math.max(0,opacity);ctx.strokeStyle='#000';ctx.lineWidth=3;ctx.strokeText(p.text,x,y);ctx.fillStyle='#fff';ctx.fillText(p.text,x,y);ctx.restore();});
+gif.addFrame(tempCanvas,frameInterval);
+progress.textContent=`捕获帧 ${i+1}/${totalFrames}...`;await new Promise(r=>setTimeout(r,20));}
+progress.textContent='生成GIF中...';
+await new Promise(r=>setTimeout(r,50));
+const gifData=gif.render(),blob=new Blob([gifData],{type:'image/gif'}),url=URL.createObjectURL(blob),link=document.createElement('a');
+link.download='math-explosion.gif';link.href=url;link.click();URL.revokeObjectURL(url);
+particles=savedParticles;if(wasRunning)isRunning=true;
+btn.disabled=false;progress.textContent='导出完成！';setTimeout(()=>progress.textContent='',3000);}
+
+document.getElementById('imageInput').addEventListener('change',e=>{const file=e.target.files[0];if(file){const reader=new FileReader();reader.onload=ev=>{const img=new Image();img.onload=()=>{imgSize={width:img.width,height:img.height};uploadedImage=ev.target.result;updateContainerSize();};img.src=ev.target.result;};reader.readAsDataURL(file);}});
+document.getElementById('toggleBtn').addEventListener('click',function(){isRunning=!isRunning;this.textContent=isRunning?'⏸ 暂停':'▶ 播放';});
+document.getElementById('exportPngBtn').addEventListener('click',exportPng);
+document.getElementById('exportGifBtn').addEventListener('click',exportGif);
+[{id:'speed',key:'speed',val:'speedVal',t:v=>v},{id:'radius',key:'radius',val:'radiusVal',t:v=>v/100},{id:'interval',key:'interval',val:'intervalVal',t:v=>v},{id:'fontSize',key:'fontSize',val:'fontSizeVal',t:v=>v},{id:'growth',key:'growth',val:'growthVal',t:v=>v/100,d:v=>(v/100).toFixed(2)},{id:'fade',key:'fade',val:'fadeVal',t:v=>v/100},{id:'centerX',key:'centerX',val:'centerXVal',t:v=>v,cb:updateCenterDot},{id:'centerY',key:'centerY',val:'centerYVal',t:v=>v,cb:updateCenterDot}].forEach(c=>{document.getElementById(c.id).addEventListener('input',function(){const v=parseInt(this.value);settings[c.key]=c.t(v);document.getElementById(c.val).textContent=c.d?c.d(v):v;if(c.cb)c.cb();});});
+window.addEventListener('resize',updateContainerSize);
+updateContainerSize();animate();
+</script>
+</body>
+</html>

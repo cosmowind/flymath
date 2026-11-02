@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>数学特效</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      background-color: #000;
+    }
+    canvas {
+      display: block;
+      position: absolute;
+      top: 0;
+      left: 0;
+    }
+    .control-panel {
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      background-color: rgba(0, 0, 0, 0.5);
+      color: white;
+      padding: 10px;
+      border-radius: 10px;
+    }
+    .control-panel input {
+      margin: 5px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="control-panel">
+    <h3>参数设置</h3>
+    <label>飞行速度：</label><input type="range" id="speed" min="1" max="10" value="5"><br>
+    <label>消失半径：</label><input type="range" id="radius" min="100" max="500" value="300"><br>
+    <label>生成速度：</label><input type="range" id="interval" min="100" max="1000" value="500"><br>
+    <label>初始字体：</label><input type="range" id="initialFont" min="10" max="50" value="15"><br>
+    <label>变大速度：</label><input type="range" id="growthSpeed" min="0.1" max="2" step="0.1" value="1"><br>
+    <input type="file" id="imageUpload"><br>
+    <button onclick="startAnimation()">开始动画</button>
+  </div>
+  
+  <canvas id="canvas"></canvas>
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/0.4.1/html2canvas.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/gif.js@0.2.0/dist/gif.min.js"></script>
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    let image = null;
+    let particles = [];
+    let imageData = null;
+    let animationFrameId = null;
+
+    let settings = {
+      speed: 5,
+      radius: 300,
+      interval: 500,
+      initialFont: 15,
+      growthSpeed: 1,
+      imageX: 0,
+      imageY: 0,
+    };
+
+    // 上传图片
+    document.getElementById('imageUpload').addEventListener('change', function(e) {
+      const reader = new FileReader();
+      reader.onload = function(event) {
+        const img = new Image();
+        img.onload = function() {
+          image = img;
+          resizeCanvas();
+        };
+        img.src = event.target.result;
+      };
+      reader.readAsDataURL(e.target.files[0]);
+    });
+
+    // 更新参数
+    document.getElementById('speed').addEventListener('input', (e) => settings.speed = e.target.value);
+    document.getElementById('radius').addEventListener('input', (e) => settings.radius = e.target.value);
+    document.getElementById('interval').addEventListener('input', (e) => settings.interval = e.target.value);
+    document.getElementById('initialFont').addEventListener('input', (e) => settings.initialFont = e.target.value);
+    document.getElementById('growthSpeed').addEventListener('input', (e) => settings.growthSpeed = e.target.value);
+
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      settings.imageX = canvas.width / 2;
+      settings.imageY = canvas.height / 2;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      drawBackground();
+    }
+
+    // 绘制背景图片
+    function drawBackground() {
+      if (image) {
+        ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+      }
+    }
+
+    // 随机数学符号
+    function randomMathSymbol() {
+      const symbols = ['1+1=2', '2*2=4', 'π', '√2', '∑', 'x²', 'e', 'ln(x)', 'cos(x)', 'sin(x)'];
+      return symbols[Math.floor(Math.random() * symbols.length)];
+    }
+
+    // 创建粒子
+    function createParticle() {
+      const angle = Math.random() * 2 * Math.PI;
+      const speed = settings.speed;
+      const size = settings.initialFont;
+      const symbol = randomMathSymbol();
+
+      particles.push({
+        x: settings.imageX,
+        y: settings.imageY,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        symbol: symbol,
+        size: size,
+        alpha: 1,
+        growth: settings.growthSpeed,
+      });
+    }
+
+    // 更新粒子位置
+    function updateParticles() {
+      particles.forEach(p => {
+        p.x += p.vx;
+        p.y += p.vy;
+        p.size += p.growth;
+        p.alpha *= 0.99; // 渐变透明度
+
+        if (Math.sqrt(p.x ** 2 + p.y ** 2) > settings.radius || p.alpha <= 0) {
+          particles.splice(particles.indexOf(p), 1);
+        }
+      });
+    }
+
+    // 绘制粒子
+    function drawParticles() {
+      particles.forEach(p => {
+        ctx.fillStyle = `rgba(255, 255, 255, ${p.alpha})`;
+        ctx.strokeStyle = 'black';
+        ctx.lineWidth = 1;
+        ctx.font = `${p.size}px Arial`;
+        ctx.fillText(p.symbol, p.x, p.y);
+        ctx.strokeText(p.symbol, p.x, p.y);
+      });
+    }
+
+    // 启动动画
+    function startAnimation() {
+      function loop() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        drawBackground();
+        updateParticles();
+        drawParticles();
+
+        if (particles.length < 500) {
+          createParticle();
+        }
+
+        animationFrameId = requestAnimationFrame(loop);
+      }
+      loop();
+    }
+
+    // 停止动画
+    function stopAnimation() {
+      cancelAnimationFrame(animationFrameId);
+    }
+
+    // 生成截图
+    function generateScreenshot() {
+      html2canvas(canvas).then(function(canvas) {
+        const dataUrl = canvas.toDataURL();
+        const link = document.createElement('a');
+        link.href = dataUrl;
+        link.download = 'math_effect.png';
+        link.click();
+      });
+    }
+
+    // 生成 GIF
+    function generateGIF() {
+      const gif = new GIF({
+        workers: 2,
+        quality: 10,
+        width: canvas.width,
+        height: canvas.height,
+      });
+
+      gif.on('finished', function(blob) {
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = 'math_effect.gif';
+        link.click();
+      });
+
+      for (let i = 0; i < 12; i++) {
+        gif.addFrame(canvas, { delay: 100 });
+      }
+
+      gif.render();
+    }
+
+    // 导出按钮
+    const exportBtn = document.createElement('button');
+    exportBtn.textContent = '导出截图';
+    exportBtn.onclick = generateScreenshot;
+    document.body.appendChild(exportBtn);
+
+    const gifBtn = document.createElement('button');
+    gifBtn.textContent = '导出GIF';
+    gifBtn.onclick = generateGIF;
+    document.body.appendChild(gifBtn);
+
+  </script>
+</body>
+</html>

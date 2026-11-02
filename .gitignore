@@ -1,0 +1,9 @@
+# 原始素材目录里有以真人照片为背景的成品，永不入库
+result/
+test/
+
+# 卫生兜底
+.env
+*.local
+Thumbs.db
+.DS_Store

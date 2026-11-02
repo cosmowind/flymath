@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数学公式粒子特效生成器</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Gif.js for GIF export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            900: '#0c4a6e',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* 自定义滚动条 */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #c1c1c1; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8; 
+        }
+        
+        /* 范围滑块样式优化 */
+        input[type=range] {
+            -webkit-appearance: none; 
+            background: transparent; 
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 16px;
+            width: 16px;
+            border-radius: 50%;
+            background: #0ea5e9;
+            cursor: pointer;
+            margin-top: -6px; 
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            cursor: pointer;
+            background: #e2e8f0;
+            border-radius: 2px;
+        }
+        
+        /* 玻璃拟态效果 */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800 h-screen w-screen overflow-hidden flex flex-col md:flex-row">
+
+    <!-- 左侧控制面板 -->
+    <aside class="w-full md:w-80 bg-white shadow-xl z-20 flex flex-col h-full transition-all duration-300 overflow-y-auto border-r border-slate-200">
+        <div class="p-6 border-b border-slate-100">
+            <h1 class="text-xl font-bold text-slate-900 flex items-center gap-2">
+                <i class="fa-solid fa-square-root-variable text-brand-500"></i>
+                MathFX 生成器
+            </h1>
+            <p class="text-xs text-slate-500 mt-1">数学公式粒子特效工具</p>
+        </div>
+
+        <div class="p-6 space-y-6 flex-1">
+            <!-- 图片上传 -->
+            <div class="space-y-2">
+                <label class="text-sm font-semibold text-slate-700">1. 上传底图</label>
+                <div class="relative group">
+                    <input type="file" id="imageInput" accept="image/*" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10">
+                    <div class="border-2 border-dashed border-slate-300 rounded-lg p-4 text-center group-hover:border-brand-500 group-hover:bg-brand-50 transition-colors">
+                        <i class="fa-solid fa-cloud-arrow-up text-2xl text-slate-400 mb-2 group-hover:text-brand-500"></i>
+                        <p class="text-xs text-slate-500" id="fileName">点击或拖拽上传图片</p>
+                    </div>
+                </div>
+            </div>
+
+            <hr class="border-slate-100">
+
+            <!-- 参数设置 -->
+            <div class="space-y-4">
+                <div class="flex justify-between items-center">
+                    <label class="text-sm font-semibold text-slate-700">2. 参数设置</label>
+                    <button id="resetParams" class="text-xs text-brand-600 hover:text-brand-800 hover:underline">重置默认</button>
+                </div>
+
+                <!-- 飞行速度 -->
+                <div>
+                    <div class="flex justify-between text-xs mb-1">
+                        <span class="text-slate-500">飞行速度</span>
+                        <span class="font-mono text-slate-700" id="val-speed">2.0</span>
+                    </div>
+                    <input type="range" id="speed" min="0.5" max="10" step="0.1" value="2.0" class="w-full">
+                </div>
+
+                <!-- 生成间隔 -->
+                <div>
+                    <div class="flex justify-between text-xs mb-1">
+                        <span class="text-slate-500">生成间隔 (ms)</span>
+                        <span class="font-mono text-slate-700" id="val-interval">100</span>
+                    </div>
+                    <input type="range" id="interval" min="10" max="500" step="10" value="100" class="w-full">
+                </div>
+
+                <!-- 初始字体 -->
+                <div>
+                    <div class="flex justify-between text-xs mb-1">
+                        <span class="text-slate-500">初始字体</span>
+                        <span class="font-mono text-slate-700" id="val-initSize">12</span>
+                    </div>
+                    <input type="range" id="initSize" min="8" max="40" step="1" value="12" class="w-full">
+                </div>
+
+                <!-- 变大速度 -->
+                <div>
+                    <div class="flex justify-between text-xs mb-1">
+                        <span class="text-slate-500">变大速度 (Scale)</span>
+                        <span class="font-mono text-slate-700" id="val-scaleSpeed">0.05</span>
+                    </div>
+                    <input type="range" id="scaleSpeed" min="0.01" max="0.2" step="0.01" value="0.05" class="w-full">
+                </div>
+                
+                <!-- 消失半径/透明度 -->
+                <div>
+                    <div class="flex justify-between text-xs mb-1">
+                        <span class="text-slate-500">淡出距离阈值</span>
+                        <span class="font-mono text-slate-700" id="val-fadeRadius">300</span>
+                    </div>
+                    <input type="range" id="fadeRadius" min="50" max="1000" step="10" value="300" class="w-full">
+                </div>
+            </div>
+
+            <hr class="border-slate-100">
+
+            <!-- 导出操作 -->
+            <div class="space-y-3">
+                <label class="text-sm font-semibold text-slate-700">3. 导出结果</label>
+                
+                <button id="btnSnapshot" class="w-full py-2 px-4 bg-slate-800 hover:bg-slate-900 text-white rounded-lg shadow-md transition-all flex items-center justify-center gap-2 text-sm font-medium">
+                    <i class="fa-solid fa-camera"></i> 保存截图 (JPG)
+                </button>
+
+                <div class="relative">
+                    <button id="btnRecordGif" class="w-full py-2 px-4 bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white rounded-lg shadow-md transition-all flex items-center justify-center gap-2 text-sm font-medium">
+                        <i class="fa-solid fa-film"></i> 录制 GIF (3秒)
+                    </button>
+                    <!-- 录制状态遮罩 -->
+                    <div id="recordingOverlay" class="absolute inset-0 bg-white/80 backdrop-blur-sm rounded-lg flex items-center justify-center hidden z-10">
+                        <div class="flex flex-col items-center">
+                            <div class="w-4 h-4 bg-red-500 rounded-full animate-pulse mb-1"></div>
+                            <span class="text-xs font-bold text-red-600">录制中...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="p-4 text-center text-xs text-slate-400 border-t border-slate-100">
+            Generated by GLM4.7
+        </div>
+    </aside>
+
+    <!-- 右侧画布区域 -->
+    <main class="flex-1 bg-slate-200 relative overflow-hidden flex items-center justify-center p-4 md:p-8">
+        <!-- 画布容器 -->
+        <div class="relative shadow-2xl rounded-sm overflow-hidden bg-white" style="max-width: 100%; max-height: 100%;">
+            <canvas id="mainCanvas"></canvas>
+            
+            <!-- 提示信息 -->
+            <div id="emptyState" class="absolute inset-0 flex flex-col items-center justify-center text-slate-400 pointer-events-none">
+                <i class="fa-regular fa-image text-6xl mb-4 opacity-50"></i>
+                <p class="text-lg font-medium">请先在左侧上传一张图片</p>
+            </div>
+        </div>
+    </main>
+
+    <!-- Toast 通知 -->
+    <div id="toast" class="fixed bottom-6 right-6 bg-slate-800 text-white px-6 py-3 rounded-lg shadow-lg transform translate-y-20 opacity-0 transition-all duration-300 z-50 flex items-center gap-3">
+        <i class="fa-solid fa-circle-check text-green-400"></i>
+        <span id="toastMsg">操作成功</span>
+    </div>
+
+    <script>
+        /**
+         * ------------------------------------------------------------------
+         * 配置与状态管理
+         * ------------------------------------------------------------------
+         */
+        const config = {
+            speed: 2.0,
+            interval: 100,
+            initSize: 12,
+            scaleSpeed: 0.05,
+            fadeRadius: 300,
+            maxOpacityDistance: 600 // 超过这个距离完全透明
+        };
+
+        const defaultState = { ...config };
+
+        let particles = [];
+        let lastSpawnTime = 0;
+        let animationId;
+        let isRecording = false;
+        
+        // 图片相关
+        let bgImage = null;
+        let canvas, ctx;
+        let centerX, centerY;
+
+        // 数学符号库
+        const mathSymbols = [
+            "0", "1", "2", "3", "4", "5", "6", "7", "8", "9",
+            "+", "-", "×", "÷", "=", "≠", "≈", "∞", "π", "∑", "∫",
+            "√", "x", "y", "z", "a", "b", "c", "sin", "cos", "tan",
+            "log", "ln", "e", "f(x)", "α", "β", "γ", "Δ", "θ", "λ",
+            "1+1=2", "2*2=4", "E=mc²", "a²+b²=c²", "x", "y"
+        ];
+
+        /**
+         * ------------------------------------------------------------------
+         * 初始化
+         * ------------------------------------------------------------------
+         */
+        window.addEventListener('DOMContentLoaded', () => {
+            canvas = document.getElementById('mainCanvas');
+            ctx = canvas.getContext('2d', { willReadFrequently: true });
+            
+            // 初始化画布大小（默认）
+            resizeCanvas(800, 600);
+            
+            // 绑定事件
+            bindEvents();
+            
+            // 开始动画循环
+            animate();
+        });
+
+        function resizeCanvas(w, h) {
+            canvas.width = w;
+            canvas.height = h;
+            centerX = w / 2;
+            centerY = h / 2;
+            
+            // 如果没有图片，显示空白
+            if (!bgImage) {
+                ctx.fillStyle = '#f8fafc';
+                ctx.fillRect(0, 0, w, h);
+            }
+        }
+
+        /**
+         * ------------------------------------------------------------------
+         * 粒子系统
+         * ------------------------------------------------------------------
+         */
+        class Particle {
+            constructor() {
+                this.reset();
+            }
+
+            reset() {
+                this.text = mathSymbols[Math.floor(Math.random() * mathSymbols.length)];
+                this.angle = Math.random() * Math.PI * 2;
+                this.x = centerX;
+                this.y = centerY;
+                this.distance = 0;
+                this.fontSize = config.initSize;
+                this.opacity = 1;
+                this.active = true;
+            }
+
+            update() {
+                // 移动
+                this.distance += config.speed;
+                this.x = centerX + Math.cos(this.angle) * this.distance;
+                this.y = centerY + Math.sin(this.angle) * this.distance;
+
+                // 变大
+                this.fontSize = config.initSize + (this.distance * config.scaleSpeed);
+
+                // 计算透明度 (基于距离)
+                // 在 fadeRadius 之前保持不透明，之后逐渐淡出
+                if (this.distance > config.fadeRadius) {
+                    const fadeRange = config.maxOpacityDistance - config.fadeRadius;
+                    const progress = (this.distance - config.fadeRadius) / fadeRange;
+                    this.opacity = 1 - Math.max(0, Math.min(1, progress));
+                } else {
+                    this.opacity = 1;
+                }
+
+                // 边界检查：超出图片范围或完全透明则移除
+                // 使用简单的矩形边界检查，加上一点缓冲
+                if (this.opacity <= 0 || 
+                    this.x < -100 || this.x > canvas.width + 100 || 
+                    this.y < -100 || this.y > canvas.height + 100) {
+                    this.active = false;
+                }
+            }
+
+            draw(context) {
+                if (!this.active) return;
+                
+                context.save();
+                context.translate(this.x, this.y);
+                // 不旋转，保持正向
+                
+                context.font = `bold ${this.fontSize}px 'JetBrains Mono', monospace`;
+                context.textAlign = 'center';
+                context.textBaseline = 'middle';
+                
+                // 黑色边
+                context.strokeStyle = 'black';
+                context.lineWidth = this.fontSize * 0.15; // 边框宽度随字体大小调整
+                context.lineJoin = 'round';
+                context.strokeText(this.text, 0, 0);
+                
+                // 白色字
+                context.fillStyle = `rgba(255, 255, 255, ${this.opacity})`;
+                context.fillText(this.text, 0, 0);
+                
+                context.restore();
+            }
+        }
+
+        function spawnParticle() {
+            particles.push(new Particle());
+        }
+
+        function animate(timestamp) {
+            if (!lastSpawnTime) lastSpawnTime = timestamp;
+            
+            // 1. 清空画布
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // 2. 绘制背景图
+            if (bgImage) {
+                ctx.drawImage(bgImage, 0, 0, canvas.width, canvas.height);
+            }
+
+            // 3. 生成新粒子
+            if (timestamp - lastSpawnTime > config.interval) {
+                spawnParticle();
+                lastSpawnTime = timestamp;
+            }
+
+            // 4. 更新并绘制所有粒子
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.update();
+                p.draw(ctx);
+                if (!p.active) {
+                    particles.splice(i, 1);
+                }
+            }
+
+            // 5. 如果正在录制GIF，添加帧
+            if (isRecording && window.gifRenderer) {
+                window.gifRenderer.addFrame(ctx, {copy: true, delay: 20}); // 20ms per frame approx 50fps
+            }
+
+            animationId = requestAnimationFrame(animate);
+        }
+
+        /**
+         * ------------------------------------------------------------------
+         * 事件处理与交互
+         * ------------------------------------------------------------------
+         */
+        function bindEvents() {
+            // 图片上传
+            const imageInput = document.getElementById('imageInput');
+            imageInput.addEventListener('change', handleImageUpload);
+
+            // 参数滑块绑定
+            bindRangeInput('speed', 'val-speed');
+            bindRangeInput('interval', 'val-interval');
+            bindRangeInput('initSize', 'val-initSize');
+            bindRangeInput('scaleSpeed', 'val-scaleSpeed');
+            bindRangeInput('fadeRadius', 'val-fadeRadius');
+
+            // 重置按钮
+            document.getElementById('resetParams').addEventListener('click', () => {
+                Object.assign(config, defaultState);
+                updateAllInputs();
+                showToast('参数已重置');
+            });
+
+            // 导出截图
+            document.getElementById('btnSnapshot').addEventListener('click', exportSnapshot);
+
+            // 导出GIF
+            document.getElementById('btnRecordGif').addEventListener('click', recordGif);
+        }
+
+        function bindRangeInput(id, displayId) {
+            const input = document.getElementById(id);
+            const display = document.getElementById(displayId);
+            
+            input.addEventListener('input', (e) => {
+                const val = parseFloat(e.target.value);
+                config[id] = val;
+                display.textContent = val;
+            });
+        }
+
+        function updateAllInputs() {
+            for (const key in config) {
+                const input = document.getElementById(key);
+                const display = document.getElementById(`val-${key}`);
+                if (input) {
+                    input.value = config[key];
+                    if (display) display.textContent = config[key];
+                }
+            }
+        }
+
+        function handleImageUpload(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            document.getElementById('fileName').textContent = file.name;
+            document.getElementById('emptyState').classList.add('hidden');
+
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const img = new Image();
+                img.onload = () => {
+                    bgImage = img;
+                    // 调整画布大小以适应图片，但限制最大显示尺寸以适应屏幕
+                    // 实际渲染尺寸使用图片原始尺寸，CSS控制显示大小
+                    resizeCanvas(img.width, img.height);
+                    
+                    // CSS 样式调整以保持比例
+                    const container = canvas.parentElement;
+                    canvas.style.width = '100%';
+                    canvas.style.height = 'auto';
+                    canvas.style.maxWidth = '100%';
+                    canvas.style.maxHeight = '80vh'; // 限制最大高度
+                    
+                    showToast('图片加载成功');
+                };
+                img.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        /**
+         * ------------------------------------------------------------------
+         * 导出功能
+         * ------------------------------------------------------------------
+         */
+        function exportSnapshot() {
+            if (!bgImage) {
+                showToast('请先上传图片', 'error');
+                return;
+            }
+            
+            // 创建临时链接下载
+            const link = document.createElement('a');
+            link.download = `mathfx_snapshot_${Date.now()}.jpg`;
+            link.href = canvas.toDataURL('image/jpeg', 0.9);
+            link.click();
+            showToast('截图已保存');
+        }
+
+        function recordGif() {
+            if (!bgImage) {
+                showToast('请先上传图片', 'error');
+                return;
+            }
+            if (isRecording) return;
+
+            isRecording = true;
+            const overlay = document.getElementById('recordingOverlay');
+            overlay.classList.remove('hidden');
+
+            // 初始化 GIF 渲染器
+            // 注意：gif.js 需要 worker 脚本。这里使用 CDN 的 worker 路径
+            const gif = new GIF({
+                workers: 2,
+                quality: 10,
+                width: canvas.width,
+                height: canvas.height,
+                workerScript: 'https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.worker.js'
+            });
+
+            window.gifRenderer = gif;
+
+            // 录制 3 秒 (约 150 帧)
+            const duration = 3000; 
+            const startTime = Date.now();
+
+            const checkInterval = setInterval(() => {
+                const elapsed = Date.now() - startTime;
+                if (elapsed >= duration) {
+                    clearInterval(checkInterval);
+                    isRecording = false;
+                    overlay.classList.add('hidden');
+                    
+                    showToast('正在生成 GIF...', 'info');
+                    
+                    gif.on('finished', function(blob) {
+                        window.gifRenderer = null;
+                        const link = document.createElement('a');
+                        link.download = `mathfx_anim_${Date.now()}.gif`;
+                        link.href = URL.createObjectURL(blob);
+                        link.click();
+                        showToast('GIF 导出成功');
+                    });
+                    
+                    gif.render();
+                }
+            }, 100);
+        }
+
+        /**
+         * ------------------------------------------------------------------
+         * 工具函数
+         * ------------------------------------------------------------------
+         */
+        function showToast(msg, type = 'success') {
+            const toast = document.getElementById('toast');
+            const toastMsg = document.getElementById('toastMsg');
+            const icon = toast.querySelector('i');
+            
+            toastMsg.textContent = msg;
+            
+            if (type === 'error') {
+                icon.className = 'fa-solid fa-circle-exclamation text-red-400';
+            } else {
+                icon.className = 'fa-solid fa-circle-check text-green-400';
+            }
+
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        }
+
+    </script>
+</body>
+</html>

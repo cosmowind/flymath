@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数学字符扩散特效生成器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1a2a6c, #b21f1f, #1a2a6c);
+            color: white;
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .container {
+            max-width: 1200px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        header {
+            text-align: center;
+            padding: 20px 0;
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+        }
+        
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        .main-content {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .canvas-container {
+            flex: 1;
+            min-width: 300px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 12px;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        
+        .canvas-wrapper {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 1/1;
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+        }
+        
+        #canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+        
+        .controls {
+            flex: 1;
+            min-width: 300px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 12px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        
+        .upload-section {
+            background: rgba(40, 40, 80, 0.6);
+            padding: 15px;
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .upload-btn {
+            background: linear-gradient(45deg, #ff8a00, #e52e71);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+        }
+        
+        .upload-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.4);
+        }
+        
+        .params-section {
+            background: rgba(40, 40, 80, 0.6);
+            padding: 15px;
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .param-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .param-label {
+            display: flex;
+            justify-content: space-between;
+            font-weight: 500;
+        }
+        
+        .param-value {
+            color: #ffcc00;
+            font-weight: 600;
+        }
+        
+        .slider {
+            width: 100%;
+            height: 8px;
+            -webkit-appearance: none;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            outline: none;
+        }
+        
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #ffcc00;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(255, 204, 0, 0.5);
+        }
+        
+        .actions-section {
+            background: rgba(40, 40, 80, 0.6);
+            padding: 15px;
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .action-btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        .export-btn {
+            background: linear-gradient(45deg, #00c9ff, #92fe9d);
+            color: #1a1a2e;
+        }
+        
+        .export-btn:hover {
+            background: linear-gradient(45deg, #00b8e6, #7afda0);
+        }
+        
+        .gif-btn {
+            background: linear-gradient(45deg, #ff8a00, #e52e71);
+            color: white;
+        }
+        
+        .gif-btn:hover {
+            background: linear-gradient(45deg, #e67b00, #cc2a66);
+        }
+        
+        .instructions {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 20px;
+            border-radius: 12px;
+            margin-top: 10px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        
+        .instructions h2 {
+            margin-bottom: 10px;
+            color: #ffcc00;
+        }
+        
+        .instructions ul {
+            padding-left: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .instructions li {
+            line-height: 1.5;
+        }
+        
+        .placeholder-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            color: rgba(255, 255, 255, 0.6);
+            max-width: 80%;
+        }
+        
+        .placeholder-text h3 {
+            margin-bottom: 10px;
+            font-size: 1.2rem;
+        }
+        
+        .placeholder-text p {
+            font-size: 0.9rem;
+        }
+        
+        @media (max-width: 768px) {
+            .main-content {
+                flex-direction: column;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>数学字符扩散特效生成器</h1>
+            <p class="subtitle">上传图片，从中心点生成随机数学字符，自定义参数，导出特效图片或GIF</p>
+        </header>
+        
+        <div class="main-content">
+            <div class="canvas-container">
+                <h2>特效预览</h2>
+                <div class="canvas-wrapper">
+                    <canvas id="canvas"></canvas>
+                    <div class="placeholder-text" id="placeholder">
+                        <h3>上传图片开始</h3>
+                        <p>点击下方按钮上传图片作为背景</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="controls">
+                <div class="upload-section">
+                    <h2>上传图片</h2>
+                    <input type="file" id="imageUpload" accept="image/*" style="display: none;">
+                    <button class="upload-btn" id="uploadBtn">选择图片</button>
+                </div>
+                
+                <div class="params-section">
+                    <h2>特效参数</h2>
+                    <div class="param-group">
+                        <div class="param-label">
+                            <span>飞行速度</span>
+                            <span class="param-value" id="speedValue">2.0</span>
+                        </div>
+                        <input type="range" min="0.5" max="5" step="0.1" value="2.0" class="slider" id="speedSlider">
+                    </div>
+                    
+                    <div class="param-group">
+                        <div class="param-label">
+                            <span>消失半径</span>
+                            <span class="param-value" id="radiusValue">80%</span>
+                        </div>
+                        <input type="range" min="50" max="100" step="1" value="80" class="slider" id="radiusSlider">
+                    </div>
+                    
+                    <div class="param-group">
+                        <div class="param-label">
+                            <span>生成速度</span>
+                            <span class="param-value" id="spawnValue">200ms</span>
+                        </div>
+                        <input type="range" min="50" max="1000" step="10" value="200" class="slider" id="spawnSlider">
+                    </div>
+                    
+                    <div class="param-group">
+                        <div class="param-label">
+                            <span>初始字体大小</span>
+                            <span class="param-value" id="fontSizeValue">12px</span>
+                        </div>
+                        <input type="range" min="8" max="24" step="1" value="12" class="slider" id="fontSizeSlider">
+                    </div>
+                    
+                    <div class="param-group">
+                        <div class="param-label">
+                            <span>字体增大速度</span>
+                            <span class="param-value" id="growthValue">0.5</span>
+                        </div>
+                        <input type="range" min="0.1" max="2" step="0.1" value="0.5" class="slider" id="growthSlider">
+                    </div>
+                </div>
+                
+                <div class="actions-section">
+                    <h2>导出特效</h2>
+                    <button class="action-btn export-btn" id="exportImage">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="17 8 12 3 7 8"></polyline>
+                            <line x1="12" y1="3" x2="12" y2="15"></line>
+                        </svg>
+                        导出静态图片 (PNG)
+                    </button>
+                    <button class="action-btn gif-btn" id="exportGif">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                            <line x1="8" y1="21" x2="16" y2="21"></line>
+                            <line x1="12" y1="17" x2="12" y2="21"></line>
+                        </svg>
+                        导出动态GIF (2秒)
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="instructions">
+            <h2>使用说明</h2>
+            <ul>
+                <li>上传图片作为背景，特效将从图片中心点生成</li>
+                <li>调整参数实时预览特效效果：飞行速度、消失半径、生成频率、初始字体大小和增大速度</li>
+                <li>数学字符包括：数字、运算符、函数、公式、希腊字母等随机组合</li>
+                <li>字符从中心向外扩散，随着距离增大字体变大且逐渐透明</li>
+                <li>导出功能：可导出当前帧的静态PNG图片或2秒动态GIF</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // 获取DOM元素
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const placeholder = document.getElementById('placeholder');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const imageUpload = document.getElementById('imageUpload');
+        const exportImageBtn = document.getElementById('exportImage');
+        const exportGifBtn = document.getElementById('exportGif');
+        
+        // 参数滑块
+        const speedSlider = document.getElementById('speedSlider');
+        const radiusSlider = document.getElementById('radiusSlider');
+        const spawnSlider = document.getElementById('spawnSlider');
+        const fontSizeSlider = document.getElementById('fontSizeSlider');
+        const growthSlider = document.getElementById('growthSlider');
+        
+        // 参数值显示
+        const speedValue = document.getElementById('speedValue');
+        const radiusValue = document.getElementById('radiusValue');
+        const spawnValue = document.getElementById('spawnValue');
+        const fontSizeValue = document.getElementById('fontSizeValue');
+        const growthValue = document.getElementById('growthValue');
+        
+        // 全局变量
+        let backgroundImage = null;
+        let particles = [];
+        let animationId = null;
+        let lastSpawnTime = 0;
+        let isAnimating = false;
+        
+        // 参数配置
+        const config = {
+            speed: 2.0,
+            radius: 80,
+            spawnInterval: 200,
+            initialFontSize: 12,
+            growthRate: 0.5
+        };
+        
+        // 数学相关字符库
+        const mathSymbols = [
+            // 数字和基本运算
+            "1+1=2", "2*2=4", "3.14", "√4", "2²", "5!", 
+            "10%", "½", "⅓", "⅔", "¼", "¾",
+            
+            // 运算符
+            "+", "-", "×", "÷", "=", "≠", 
+            "<", ">", "≤", "≥", "≈", "∝",
+            
+            // 函数
+            "sin", "cos", "tan", "log", "ln", "exp", 
+            "∫", "∂", "∑", "∏", "lim", "∞",
+            
+            // 希腊字母
+            "α", "β", "γ", "δ", "ε", "ζ", 
+            "η", "θ", "ι", "κ", "λ", "μ",
+            "ν", "ξ", "π", "ρ", "σ", "τ",
+            "υ", "φ", "χ", "ψ", "ω",
+            
+            // 其他数学符号
+            "∅", "∈", "∉", "⊆", "⊂", "∪", 
+            "∩", "ℕ", "ℤ", "ℚ", "ℝ", "ℂ",
+            "∇", "⊥", "∥", "∠", "△", "□"
+        ];
+        
+        // 初始化画布
+        function initCanvas() {
+            const container = canvas.parentElement;
+            canvas.width = container.clientWidth;
+            canvas.height = container.clientHeight;
+        }
+        
+        // 上传图片
+        uploadBtn.addEventListener('click', () => {
+            imageUpload.click();
+        });
+        
+        imageUpload.addEventListener('change', (e) => {
+            if (e.target.files && e.target.files[0]) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        backgroundImage = img;
+                        placeholder.style.display = 'none';
+                        startAnimation();
+                    };
+                    img.src = event.target.result;
+                };
+                reader.readAsDataURL(e.target.files[0]);
+            }
+        });
+        
+        // 更新参数显示
+        function updateParamDisplay() {
+            speedValue.textContent = config.speed.toFixed(1);
+            radiusValue.textContent = `${config.radius}%`;
+            spawnValue.textContent = `${config.spawnInterval}ms`;
+            fontSizeValue.textContent = `${config.initialFontSize}px`;
+            growthValue.textContent = config.growthRate.toFixed(1);
+        }
+        
+        // 设置参数滑块事件
+        speedSlider.addEventListener('input', () => {
+            config.speed = parseFloat(speedSlider.value);
+            updateParamDisplay();
+        });
+        
+        radiusSlider.addEventListener('input', () => {
+            config.radius = parseInt(radiusSlider.value);
+            updateParamDisplay();
+        });
+        
+        spawnSlider.addEventListener('input', () => {
+            config.spawnInterval = parseInt(spawnSlider.value);
+            updateParamDisplay();
+        });
+        
+        fontSizeSlider.addEventListener('input', () => {
+            config.initialFontSize = parseInt(fontSizeSlider.value);
+            updateParamDisplay();
+        });
+        
+        growthSlider.addEventListener('input', () => {
+            config.growthRate = parseFloat(growthSlider.value);
+            updateParamDisplay();
+        });
+        
+        // 粒子类
+        class Particle {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.angle = Math.random() * Math.PI * 2;
+                this.speed = config.speed * (0.5 + Math.random() * 1.5);
+                this.text = this.getRandomMathText();
+                this.size = config.initialFontSize;
+                this.maxSize = config.initialFontSize * 3;
+                this.opacity = 1.0;
+                this.maxDistance = Math.min(canvas.width, canvas.height) * (config.radius / 100) / 2;
+                this.distance = 0;
+            }
+            
+            getRandomMathText() {
+                // 随机选择数学文本
+                const index = Math.floor(Math.random() * mathSymbols.length);
+                return mathSymbols[index];
+            }
+            
+            update() {
+                // 更新位置
+                this.x += Math.cos(this.angle) * this.speed;
+                this.y += Math.sin(this.angle) * this.speed;
+                
+                // 计算到中心的距离
+                const centerX = canvas.width / 2;
+                const centerY = canvas.height / 2;
+                this.distance = Math.sqrt(
+                    Math.pow(this.x - centerX, 2) + 
+                    Math.pow(this.y - centerY, 2)
+                );
+                
+                // 更新大小和透明度
+                this.size = Math.min(
+                    config.initialFontSize + (this.distance / this.maxDistance) * config.growthRate * 20,
+                    this.maxSize
+                );
+                this.opacity = 1.0 - (this.distance / this.maxDistance);
+                
+                // 如果超出范围或完全透明，则标记为死亡
+                return this.opacity <= 0 || this.distance > this.maxDistance;
+            }
+            
+            draw(ctx) {
+                ctx.save();
+                ctx.globalAlpha = this.opacity;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.font = `${this.size}px Arial`;
+                ctx.fillStyle = 'white';
+                ctx.strokeStyle = 'black';
+                ctx.lineWidth = 2;
+                ctx.strokeText(this.text, this.x, this.y);
+                ctx.fillText(this.text, this.x, this.y);
+                ctx.restore();
+            }
+        }
+        
+        // 动画循环
+        function animate(currentTime) {
+            // 清除画布
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // 绘制背景图片
+            if (backgroundImage) {
+                const ratio = Math.min(
+                    canvas.width / backgroundImage.width,
+                    canvas.height / backgroundImage.height
+                );
+                const imgWidth = backgroundImage.width * ratio;
+                const imgHeight = backgroundImage.height * ratio;
+                const x = (canvas.width - imgWidth) / 2;
+                const y = (canvas.height - imgHeight) / 2;
+                ctx.drawImage(backgroundImage, x, y, imgWidth, imgHeight);
+            }
+            
+            // 生成新粒子
+            if (currentTime - lastSpawnTime > config.spawnInterval) {
+                particles.push(new Particle(canvas.width / 2, canvas.height / 2));
+                lastSpawnTime = currentTime;
+            }
+            
+            // 更新和绘制粒子
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const isDead = particles[i].update();
+                particles[i].draw(ctx);
+                
+                if (isDead) {
+                    particles.splice(i, 1);
+                }
+            }
+            
+            // 继续动画循环
+            if (isAnimating) {
+                animationId = requestAnimationFrame(animate);
+            }
+        }
+        
+        // 开始动画
+        function startAnimation() {
+            if (isAnimating) return;
+            isAnimating = true;
+            lastSpawnTime = performance.now();
+            animationId = requestAnimationFrame(animate);
+        }
+        
+        // 停止动画
+        function stopAnimation() {
+            if (!isAnimating) return;
+            isAnimating = false;
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+            }
+        }
+        
+        // 导出静态图片
+        exportImageBtn.addEventListener('click', () => {
+            if (!backgroundImage) {
+                alert('请先上传图片！');
+                return;
+            }
+            
+            // 暂停动画
+            stopAnimation();
+            
+            // 创建临时画布以导出完整图像
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = canvas.width;
+            tempCanvas.height = canvas.height;
+            const tempCtx = tempCanvas.getContext('2d');
+            
+            // 绘制背景
+            const ratio = Math.min(
+                tempCanvas.width / backgroundImage.width,
+                tempCanvas.height / backgroundImage.height
+            );
+            const imgWidth = backgroundImage.width * ratio;
+            const imgHeight = backgroundImage.height * ratio;
+            const x = (tempCanvas.width - imgWidth) / 2;
+            const y = (tempCanvas.height - imgHeight) / 2;
+            tempCtx.drawImage(backgroundImage, x, y, imgWidth, imgHeight);
+            
+            // 绘制当前粒子
+            particles.forEach(particle => particle.draw(tempCtx));
+            
+            // 导出为PNG
+            const link = document.createElement('a');
+            link.download = 'math-effect.png';
+            link.href = tempCanvas.toDataURL('image/png');
+            link.click();
+            
+            // 重新开始动画
+            startAnimation();
+        });
+        
+        // 导出GIF（简化版 - 实际应用中需要gif.js等库）
+        exportGifBtn.addEventListener('click', () => {
+            if (!backgroundImage) {
+                alert('请先上传图片！');
+                return;
+            }
+            
+            alert('GIF导出功能需要集成gif.js库。在实际应用中，我们会：\n\n1. 捕获2秒的帧\n2. 使用gif.js生成GIF\n3. 提供下载链接\n\n当前演示中，此功能仅作示意。');
+            
+            // 在真实实现中：
+            // 1. 暂停主动画
+            // 2. 创建gif实例
+            // 3. 捕获60帧（30fps * 2秒）
+            // 4. 添加每帧到gif
+            // 5. 渲染并下载
+        });
+        
+        // 初始化
+        window.addEventListener('load', () => {
+            initCanvas();
+            updateParamDisplay();
+            window.addEventListener('resize', () => {
+                initCanvas();
+            });
+        });
+    </script>
+</body>
+</html>

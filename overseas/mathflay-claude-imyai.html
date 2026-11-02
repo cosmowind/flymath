@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数学字符飞散特效生成器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: #fff;
+            overflow-x: hidden;
+        }
+
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            padding: 20px;
+            gap: 20px;
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        .control-panel {
+            flex: 0 0 320px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            height: fit-content;
+            position: sticky;
+            top: 20px;
+        }
+
+        .control-panel h2 {
+            margin-bottom: 20px;
+            text-align: center;
+            font-size: 1.5em;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.3);
+            padding-bottom: 10px;
+        }
+
+        .control-group {
+            margin-bottom: 15px;
+        }
+
+        .control-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 0.9em;
+            color: #aaa;
+        }
+
+        .control-group input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: rgba(255, 255, 255, 0.2);
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .control-group input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #4ecdc4;
+            cursor: pointer;
+        }
+
+        .control-group input[type="number"] {
+            width: 100%;
+            padding: 8px;
+            border: none;
+            border-radius: 5px;
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            font-size: 14px;
+        }
+
+        .value-display {
+            text-align: right;
+            font-size: 0.85em;
+            color: #4ecdc4;
+            margin-top: 3px;
+        }
+
+        .upload-area {
+            border: 2px dashed rgba(255, 255, 255, 0.3);
+            border-radius: 10px;
+            padding: 30px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-bottom: 20px;
+        }
+
+        .upload-area:hover {
+            border-color: #4ecdc4;
+            background: rgba(78, 205, 196, 0.1);
+        }
+
+        .upload-area input {
+            display: none;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #4ecdc4, #44a08d);
+            color: #fff;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(78, 205, 196, 0.4);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .btn-export {
+            background: linear-gradient(135deg, #f093fb, #f5576c);
+        }
+
+        .btn-export:hover {
+            box-shadow: 0 5px 20px rgba(245, 87, 108, 0.4);
+        }
+
+        .preview-area {
+            flex: 1;
+            min-width: 500px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .canvas-container {
+            position: relative;
+            background: #000;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+        }
+
+        #mainCanvas {
+            display: block;
+            cursor: crosshair;
+        }
+
+        .center-marker {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #ff6b6b;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+        }
+
+        .center-marker::before,
+        .center-marker::after {
+            content: '';
+            position: absolute;
+            background: #ff6b6b;
+        }
+
+        .center-marker::before {
+            width: 2px;
+            height: 30px;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .center-marker::after {
+            width: 30px;
+            height: 2px;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .instructions {
+            margin-top: 15px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            font-size: 0.9em;
+            color: #aaa;
+        }
+
+        .instructions h4 {
+            color: #4ecdc4;
+            margin-bottom: 10px;
+        }
+
+        .status-bar {
+            margin-top: 10px;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            font-size: 0.85em;
+        }
+
+        .progress-container {
+            display: none;
+            margin-top: 15px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4ecdc4, #44a08d);
+            width: 0%;
+            transition: width 0.3s;
+        }
+
+        .progress-text {
+            text-align: center;
+            margin-top: 5px;
+            font-size: 0.85em;
+        }
+
+        .section-title {
+            font-size: 1.1em;
+            color: #4ecdc4;
+            margin: 20px 0 10px;
+            padding-bottom: 5px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .center-inputs {
+            display: flex;
+            gap: 10px;
+        }
+
+        .center-inputs .control-group {
+            flex: 1;
+        }
+
+        @media (max-width: 900px) {
+            .container {
+                flex-direction: column;
+            }
+            .control-panel {
+                flex: 1;
+                position: static;
+            }
+            .preview-area {
+                min-width: auto;
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="control-panel">
+            <h2>🔢 数学字符特效</h2>
+            
+            <div class="upload-area" id="uploadArea">
+                <div>📁 点击或拖拽上传图片</div>
+                <div style="font-size: 0.8em; margin-top: 10px; color: #888;">支持 JPG, PNG, GIF</div>
+                <input type="file" id="imageInput" accept="image/*">
+            </div>
+
+            <div class="section-title">⚙️ 基础参数</div>
+            
+            <div class="control-group">
+                <label>飞行速度</label>
+                <input type="range" id="speed" min="0.5" max="5" step="0.1" value="2">
+                <div class="value-display" id="speedValue">2</div>
+            </div>
+
+            <div class="control-group">
+                <label>生成间隔 (ms)</label>
+                <input type="range" id="spawnInterval" min="50" max="500" step="10" value="150">
+                <div class="value-display" id="spawnIntervalValue">150ms</div>
+            </div>
+
+            <div class="control-group">
+                <label>初始字体大小 (px)</label>
+                <input type="range" id="initialSize" min="8" max="24" step="1" value="12">
+                <div class="value-display" id="initialSizeValue">12px</div>
+            </div>
+
+            <div class="control-group">
+                <label>字体增长速度</label>
+                <input type="range" id="growthRate" min="0.5" max="3" step="0.1" value="1.5">
+                <div class="value-display" id="growthRateValue">1.5</div>
+            </div>
+
+            <div class="control-group">
+                <label>消失半径比例 (%)</label>
+                <input type="range" id="fadeRadius" min="50" max="100" step="5" value="85">
+                <div class="value-display" id="fadeRadiusValue">85%</div>
+            </div>
+
+            <div class="control-group">
+                <label>淡出开始位置 (%)</label>
+                <input type="range" id="fadeStart" min="20" max="80" step="5" value="40">
+                <div class="value-display" id="fadeStartValue">40%</div>
+            </div>
+
+            <div class="section-title">📍 中心点设置</div>
+            <div class="center-inputs">
+                <div class="control-group">
+                    <label>X (%)</label>
+                    <input type="number" id="centerX" min="0" max="100" value="50">
+                </div>
+                <div class="control-group">
+                    <label>Y (%)</label>
+                    <input type="number" id="centerY" min="0" max="100" value="50">
+                </div>
+            </div>
+            <div style="font-size: 0.8em; color: #888; margin-top: 5px;">💡 也可直接点击画布设置中心点</div>
+
+            <div class="section-title">🎬 导出设置</div>
+            
+            <div class="control-group">
+                <label>GIF 帧率</label>
+                <input type="range" id="gifFps" min="6" max="24" step="1" value="12">
+                <div class="value-display" id="gifFpsValue">12 fps</div>
+            </div>
+
+            <div class="control-group">
+                <label>GIF 时长 (秒)</label>
+                <input type="range" id="gifDuration" min="1" max="5" step="0.5" value="2">
+                <div class="value-display" id="gifDurationValue">2秒</div>
+            </div>
+
+            <button class="btn btn-primary" id="toggleBtn">▶️ 开始动画</button>
+            <button class="btn btn-secondary" id="resetBtn">🔄 重置</button>
+            <button class="btn btn-export" id="exportPngBtn">📷 导出 PNG</button>
+            <button class="btn btn-export" id="exportGifBtn">🎞️ 导出 GIF</button>
+
+            <div class="progress-container" id="progressContainer">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <div class="progress-text" id="progressText">准备中...</div>
+            </div>
+
+            <div class="status-bar" id="statusBar">
+                状态: 等待上传图片
+            </div>
+        </div>
+
+        <div class="preview-area">
+            <div class="canvas-container" id="canvasContainer">
+                <canvas id="mainCanvas" width="800" height="600"></canvas>
+                <div class="center-marker" id="centerMarker" style="left: 50%; top: 50%;"></div>
+            </div>
+            
+            <div class="instructions">
+                <h4>📖 使用说明</h4>
+                <ul>
+                    <li>上传一张图片作为底图</li>
+                    <li>调整参数控制飞散效果</li>
+                    <li>点击画布可设置字符飞出的中心点</li>
+                    <li>导出 PNG 获取静态截图</li>
+                    <li>导出 GIF 获取动态效果图</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- GIF.js library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.js"></script>
+    
+    <script>
+        // 数学相关的字符和公式
+        const mathSymbols = [
+            // 数字
+            '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
+            // 运算符
+            '+', '-', '×', '÷', '=', '≠', '≈', '±', '∓',
+            // 希腊字母
+            'α', 'β', 'γ', 'δ', 'ε', 'θ', 'λ', 'μ', 'π', 'σ', 'φ', 'ω', 'Σ', 'Π', 'Δ', 'Ω',
+            // 数学符号
+            '∞', '√', '∛', '∫', '∬', '∂', '∇', '∈', '∉', '⊂', '⊃', '∪', '∩',
+            '≤', '≥', '≪', '≫', '∝', '∴', '∵', '⊕', '⊗',
+            // 集合和逻辑
+            '∀', '∃', '∧', '∨', '¬', '⇒', '⇔', 'ℕ', 'ℤ', 'ℚ', 'ℝ', 'ℂ',
+            // 其他
+            '‰', '°', '′', '″', '!', 'ⁿ', '₀', '₁', '₂'
+        ];
+
+        const mathFormulas = [
+            'E=mc²', 'a²+b²=c²', 'πr²', '2πr', 'sin²θ+cos²θ=1',
+            'f(x)', 'g(x)', 'dy/dx', '∫f(x)dx', 'lim', 'Σxᵢ',
+            'x²', 'eⁱπ+1=0', '∇·E', '∂f/∂x', 'log₂x', 'ln(x)',
+            'n!', 'Cⁿₖ', 'aₙ', 'xⁿ', '√2', '∛8', '|x|', '[x]',
+            'sin(x)', 'cos(x)', 'tan(x)', 'arcsin', 'arccos',
+            'det(A)', 'tr(A)', 'A⁻¹', 'Aᵀ', 'λmax'
+        ];
+
+        const funnyCalculations = [
+            '1+1=3?', '2×2=5?', '3+3=7?', '4-1=2?', '5÷5=2?',
+            '6×0=6?', '7+2=8?', '8-3=4?', '9÷3=4?', '0+0=1?',
+            '2²=5?', '3³=26?', '√9=4?', '10%=11?', 'π=3?',
+            '∞+1=?', '0÷0=?', '1⁰=0?', '0!=0?', '-1²=1?'
+        ];
+
+        // Canvas 和上下文
+        const canvas = document.getElementById('mainCanvas');
+        const ctx = canvas.getContext('2d');
+        const canvasContainer = document.getElementById('canvasContainer');
+        const centerMarker = document.getElementById('centerMarker');
+
+        // 状态变量
+        let particles = [];
+        let isAnimating = false;
+        let animationId = null;
+        let spawnIntervalId = null;
+        let backgroundImage = null;
+        let imageLoaded = false;
+
+        // 参数
+        let params = {
+            speed: 2,
+            spawnInterval: 150,
+            initialSize: 12,
+            growthRate: 1.5,
+            fadeRadius: 0.85,
+            fadeStart: 0.4,
+            centerX: 0.5,
+            centerY: 0.5,
+            gifFps: 12,
+            gifDuration: 2
+        };
+
+        // 获取随机数学内容
+        function getRandomMathContent() {
+            const type = Math.random();
+            if (type < 0.4) {
+                return mathSymbols[Math.floor(Math.random() * mathSymbols.length)];
+            } else if (type < 0.75) {
+                return mathFormulas[Math.floor(Math.random() * mathFormulas.length)];
+            } else {
+                return funnyCalculations[Math.floor(Math.random() * funnyCalculations.length)];
+            }
+        }
+
+        // 粒子类
+        class Particle {
+            constructor() {
+                this.reset();
+            }
+
+            reset() {
+                const centerX = canvas.width * params.centerX;
+                const centerY = canvas.height * params.centerY;
+                
+                this.x = centerX;
+                this.y = centerY;
+                this.text = getRandomMathContent();
+                
+                // 随机角度
+                const angle = Math.random() * Math.PI * 2;
+                this.vx = Math.cos(angle) * params.speed;
+                this.vy = Math.sin(angle) * params.speed;
+                
+                this.size = params.initialSize;
+                this.alpha = 1;
+                this.distance = 0;
+                this.maxDistance = Math.min(canvas.width, canvas.height) * params.fadeRadius / 2;
+            }
+
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                
+                const centerX = canvas.width * params.centerX;
+                const centerY = canvas.height * params.centerY;
+                const dx = this.x - centerX;
+                const dy = this.y - centerY;
+                this.distance = Math.sqrt(dx * dx + dy * dy);
+                
+                // 距离越远，字体越大
+                const progress = this.distance / this.maxDistance;
+                this.size = params.initialSize + (progress * params.initialSize * params.growthRate);
+                
+                // 淡出效果
+                const fadeStartDistance = this.maxDistance * params.fadeStart;
+                if (this.distance > fadeStartDistance) {
+                    const fadeProgress = (this.distance - fadeStartDistance) / (this.maxDistance - fadeStartDistance);
+                    this.alpha = 1 - fadeProgress;
+                }
+                
+                return this.distance < this.maxDistance && this.alpha > 0;
+            }
+
+            draw(context) {
+                context.save();
+                context.font = `bold ${Math.round(this.size)}px "Courier New", monospace`;
+                context.textAlign = 'center';
+                context.textBaseline = 'middle';
+                context.globalAlpha = Math.max(0, this.alpha);
+                
+                // 黑色边框
+                context.strokeStyle = 'rgba(0, 0, 0, 0.8)';
+                context.lineWidth = 3;
+                context.strokeText(this.text, this.x, this.y);
+                
+                // 白色填充
+                context.fillStyle = 'white';
+                context.fillText(this.text, this.x, this.y);
+                
+                context.restore();
+            }
+        }
+
+        // 生成新粒子
+        function spawnParticle() {
+            if (!isAnimating) return;
+            particles.push(new Particle());
+        }
+
+        // 绘制帧
+        function drawFrame() {
+            // 清空画布
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // 绘制背景图片
+            if (backgroundImage) {
+                ctx.drawImage(backgroundImage, 0, 0, canvas.width, canvas.height);
+            } else {
+                ctx.fillStyle = '#1a1a2e';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            }
+            
+            // 更新和绘制粒子
+            particles = particles.filter(p => {
+                const alive = p.update();
+                if (alive) {
+                    p.draw(ctx);
+                }
+                return alive;
+            });
+        }
+
+        // 动画循环
+        function animate() {
+            if (!isAnimating) return;
+            drawFrame();
+            animationId = requestAnimationFrame(animate);
+        }
+
+        // 开始动画
+        function startAnimation() {
+            if (isAnimating) return;
+            isAnimating = true;
+            
+            // 开始生成粒子
+            spawnIntervalId = setInterval(spawnParticle, params.spawnInterval);
+            
+            // 开始动画循环
+            animate();
+            
+            document.getElementById('toggleBtn').textContent = '⏸️ 暂停动画';
+            updateStatus('动画运行中...');
+        }
+
+        // 停止动画
+        function stopAnimation() {
+            isAnimating = false;
+            
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+                animationId = null;
+            }
+            
+            if (spawnIntervalId) {
+                clearInterval(spawnIntervalId);
+                spawnIntervalId = null;
+            }
+            
+            document.getElementById('toggleBtn').textContent = '▶️ 开始动画';
+            updateStatus('动画已暂停');
+        }
+
+        // 重置
+        function reset() {
+            stopAnimation();
+            particles = [];
+            drawFrame();
+            updateStatus('已重置');
+        }
+
+        // 更新状态栏
+        function updateStatus(text) {
+            document.getElementById('statusBar').textContent = '状态: ' + text;
+        }
+
+        // 更新中心点标记
+        function updateCenterMarker() {
+            centerMarker.style.left = (params.centerX * 100) + '%';
+            centerMarker.style.top = (params.centerY * 100) + '%';
+        }
+
+        // 处理图片上传
+        function handleImageUpload(file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    backgroundImage = img;
+                    imageLoaded = true;
+                    
+                    // 调整画布大小以匹配图片比例
+                    const maxWidth = Math.min(800, window.innerWidth - 400);
+                    const maxHeight = 600;
+                    
+                    let width = img.width;
+                    let height = img.height;
+                    
+                    if (width > maxWidth) {
+                        height = height * (maxWidth / width);
+                        width = maxWidth;
+                    }
+                    if (height > maxHeight) {
+                        width = width * (maxHeight / height);
+                        height = maxHeight;
+                    }
+                    
+                    canvas.width = width;
+                    canvas.height = height;
+                    
+                    drawFrame();
+                    updateStatus('图片已加载: ' + img.width + 'x' + img.height);
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // 导出 PNG
+        function exportPNG() {
+            if (!imageLoaded) {
+                alert('请先上传图片！');
+                return;
+            }
+            
+            // 创建导出用的画布（原图尺寸）
+            const exportCanvas = document.createElement('canvas');
+            exportCanvas.width = backgroundImage.width;
+            exportCanvas.height = backgroundImage.height;
+            const exportCtx = exportCanvas.getContext('2d');
+            
+            // 计算缩放比例
+            const scaleX = backgroundImage.width / canvas.width;
+            const scaleY = backgroundImage.height / canvas.height;
+            
+            // 绘制背景
+            exportCtx.drawImage(backgroundImage, 0, 0);
+            
+            // 绘制粒子（缩放后）
+            particles.forEach(p => {
+                exportCtx.save();
+                exportCtx.font = `bold ${Math.round(p.size * scaleX)}px "Courier New", monospace`;
+                exportCtx.textAlign = 'center';
+                exportCtx.textBaseline = 'middle';
+                exportCtx.globalAlpha = Math.max(0, p.alpha);
+                
+                exportCtx.strokeStyle = 'rgba(0, 0, 0, 0.8)';
+                exportCtx.lineWidth = 3 * scaleX;
+                exportCtx.strokeText(p.text, p.x * scaleX, p.y * scaleY);
+                
+                exportCtx.fillStyle = 'white';
+                exportCtx.fillText(p.text, p.x * scaleX, p.y * scaleY);
+                
+                exportCtx.restore();
+            });
+            
+            // 下载
+            const link = document.createElement('a');
+            link.download = 'math-effect-' + Date.now() + '.png';
+            link.href = exportCanvas.toDataURL('image/png');
+            link.click();
+            
+            updateStatus('PNG 已导出');
+        }
+
+        // 导出 GIF
+        async function exportGIF() {
+            if (!imageLoaded) {
+                alert('请先上传图片！');
+                return;
+            }
+            
+            const fps = params.gifFps;
+            const duration = params.gifDuration;
+            const totalFrames = fps * duration;
+            const frameDelay = 1000 / fps;
+            
+            // 显示进度条
+            const progressContainer = document.getElementById('progressContainer');
+            const progressFill = document.getElementById('progressFill');
+            const progressText = document.getElementById('progressText');
+            progressContainer.style.display = 'block';
+            
+            updateStatus('正在生成 GIF...');
+            
+            // 创建 GIF 编码器
+            const gif = new GIF({
+                workers: 2,
+                quality: 10,
+                width: canvas.width,
+                height: canvas.height,
+                workerScript: 'https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.worker.js'
+            });
+            
+            // 保存当前状态
+            const wasAnimating = isAnimating;
+            if (wasAnimating) {
+                stopAnimation();
+            }
+            
+            // 重置粒子
+            particles = [];
+            
+            // 临时画布
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = canvas.width;
+            tempCanvas.height = canvas.height;
+            const tempCtx = tempCanvas.getContext('2d');
+            
+            // 生成帧
+            let frameCount = 0;
+            const frameInterval = params.spawnInterval;
+            let timeSinceLastSpawn = 0;
+            
+            for (let i = 0; i < totalFrames; i++) {
+                // 模拟时间流逝
+                timeSinceLastSpawn += frameDelay;
+                
+                // 生成新粒子
+                while (timeSinceLastSpawn >= frameInterval) {
+                    particles.push(new Particle());
+                    timeSinceLastSpawn -= frameInterval;
+                }
+                
+                // 更新粒子
+                particles = particles.filter(p => p.update());
+                
+                // 绘制帧
+                tempCtx.clearRect(0, 0, tempCanvas.width, tempCanvas.height);
+                
+                if (backgroundImage) {
+                    tempCtx.drawImage(backgroundImage, 0, 0, tempCanvas.width, tempCanvas.height);
+                }
+                
+                particles.forEach(p => p.draw(tempCtx));
+                
+                // 添加到 GIF
+                gif.addFrame(tempCtx, {copy: true, delay: frameDelay});
+                
+                // 更新进度
+                frameCount++;
+                const progress = (frameCount / totalFrames) * 50;
+                progressFill.style.width = progress + '%';
+                progressText.textContent = `捕获帧: ${frameCount}/${totalFrames}`;
+                
+                // 让 UI 更新
+                await new Promise(resolve => setTimeout(resolve, 10));
+            }
+            
+            // 渲染 GIF
+            progressText.textContent = '正在渲染 GIF...';
+            
+            gif.on('progress', function(p) {
+                progressFill.style.width = (50 + p * 50) + '%';
+            });
+            
+            gif.on('finished', function(blob) {
+                progressContainer.style.display = 'none';
+                
+                // 下载
+                const link = document.createElement('a');
+                link.download = 'math-effect-' + Date.now() + '.gif';
+                link.href = URL.create
