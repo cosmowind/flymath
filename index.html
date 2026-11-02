@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>flymath — 13 AI-written versions of one image-to-math-symbol effect</title>
+<meta name="description" content="One spec handed to several coding models. 13 static HTML/TSX implementations, each broken in its own way. No build step.">
+<style>
+  :root { --fg:#1b1f24; --mut:#57606a; --line:#d0d7de; --bg:#fff; --accent:#0969da; --ok:#1a7f37; --warn:#9a6700; }
+  @media (prefers-color-scheme: dark) {
+    :root { --fg:#e6edf3; --mut:#9198a1; --line:#30363d; --bg:#0d1117; --accent:#4c9aff; --ok:#3fb950; --warn:#d29922; }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; padding:2rem 1.25rem 4rem; background:var(--bg); color:var(--fg);
+         font:16px/1.6 ui-sans-serif,system-ui,"Segoe UI",Roboto,"Helvetica Neue",Arial,"PingFang SC","Microsoft YaHei",sans-serif; }
+  main { max-width: 58rem; margin:0 auto; }
+  h1 { font-size:1.6rem; margin:0 0 .35rem; letter-spacing:-.01em; }
+  .sub { color:var(--mut); margin:0 0 1.5rem; }
+  p.zh { color:var(--mut); font-size:.94rem; }
+  h2 { font-size:1.05rem; margin:2rem 0 .6rem; padding-bottom:.3rem; border-bottom:1px solid var(--line); }
+  table { border-collapse:collapse; width:100%; font-size:.92rem; }
+  th, td { text-align:left; padding:.42rem .6rem; border-bottom:1px solid var(--line); vertical-align:top; }
+  th { color:var(--mut); font-weight:600; }
+  td.num { text-align:right; font-variant-numeric:tabular-nums; color:var(--mut); white-space:nowrap; }
+  a { color:var(--accent); text-decoration:none; }
+  a:hover { text-decoration:underline; }
+  .tag { display:inline-block; padding:.05rem .45rem; border:1px solid var(--line); border-radius:999px; font-size:.78rem; white-space:nowrap; }
+  .tag.offline { color:var(--ok); border-color:var(--ok); }
+  .tag.online { color:var(--warn); border-color:var(--warn); }
+  .tag.fixed { background:var(--fg); color:var(--bg); }
+  .tag.react { color:var(--mut); }
+  .note { margin-top:1.5rem; padding:.8rem 1rem; border:1px solid var(--line); border-radius:8px; font-size:.9rem; color:var(--mut); }
+  footer { margin-top:2.5rem; font-size:.85rem; color:var(--mut); }
+  code { font: .9em ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; }
+</style>
+</head>
+<body>
+<main>
+  <h1>flymath</h1>
+  <p class="sub">An upload-an-image, math-symbols-burst-out-of-it web tool — in <strong>13 implementations</strong> produced by different coding models from the same requirement.</p>
+  <p class="zh">纯前端小工具：选一张背景图，让数学符号从画面中心向四周飞散，导出 PNG 或 GIF。这个页面收录同一需求交给多个模型后拿到的 13 份实现——它们不是迭代关系，每一版坏掉的方式都不一样。</p>
+
+  <h2>Overseas models (10)</h2>
+  <table>
+    <thead><tr><th>File</th><th>Status</th><th>Deps</th><th>Size</th></tr></thead>
+    <tbody>
+      <tr><td><a href="overseas/math-explosion-html-v2.html">math-explosion-html-v2.html</a></td><td><span class="tag offline">runs offline</span></td><td>none</td><td class="num">16,578 B</td></tr>
+      <tr><td><a href="overseas/mathflay-gpt-free.html">mathflay-gpt-free.html</a></td><td><span class="tag offline">runs offline</span></td><td>none — smallest</td><td class="num">5,163 B</td></tr>
+      <tr><td><a href="overseas/mathflay-grok.html">mathflay-grok.html</a></td><td><span class="tag fixed">tested &amp; fixed</span></td><td>jsdelivr <code>gif.js</code></td><td class="num">8,379 B</td></tr>
+      <tr><td><a href="overseas/mathflay-gpt-mirror.html">mathflay-gpt-mirror.html</a></td><td><span class="tag fixed">tested &amp; fixed</span></td><td>cdnjs <code>html2canvas</code> + jsdelivr <code>gif.js</code></td><td class="num">6,737 B</td></tr>
+      <tr><td><a href="overseas/gemini-improved.html">gemini-improved.html</a></td><td><span class="tag online">needs network</span></td><td>cdnjs <code>gif.js</code></td><td class="num">16,121 B</td></tr>
+      <tr><td><a href="overseas/math-explosion-html.html">math-explosion-html.html</a></td><td><span class="tag online">needs network</span></td><td>cdnjs <code>gif.js</code></td><td class="num">16,776 B</td></tr>
+      <tr><td><a href="overseas/mathflay-claude-imyai.html">mathflay-claude-imyai.html</a></td><td><span class="tag online">needs network</span></td><td>cdnjs <code>gif.js</code></td><td class="num">28,342 B</td></tr>
+      <tr><td><a href="overseas/mathflay-gemini.html">mathflay-gemini.html</a></td><td><span class="tag online">needs network</span></td><td>cdnjs <code>gif.js</code></td><td class="num">18,141 B</td></tr>
+      <tr><td><a href="overseas/math-explosion-claude.tsx">math-explosion-claude.tsx</a></td><td><span class="tag react">React component</span></td><td>needs a build</td><td class="num">15,302 B</td></tr>
+      <tr><td><a href="overseas/mathflay-claude-mirror.tsx">mathflay-claude-mirror.tsx</a></td><td><span class="tag react">React component</span></td><td>needs a build</td><td class="num">15,713 B</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Domestic models (3)</h2>
+  <table>
+    <thead><tr><th>File</th><th>Status</th><th>Deps</th><th>Size</th></tr></thead>
+    <tbody>
+      <tr><td><a href="domestic/mathfx-qwen.html">mathfx-qwen.html</a></td><td><span class="tag offline">runs offline</span></td><td>none</td><td class="num">23,953 B</td></tr>
+      <tr><td><a href="domestic/mathfx-glm47.html">mathfx-glm47.html</a></td><td><span class="tag online">needs network</span></td><td>Tailwind + <code>gif.js</code> + Font Awesome + Google Fonts</td><td class="num">22,896 B</td></tr>
+      <tr><td><a href="domestic/mathfx-unknown.html">mathfx-unknown.html</a></td><td><span class="tag online">needs network</span></td><td>same as above</td><td class="num">22,015 B</td></tr>
+    </tbody>
+  </table>
+
+  <div class="note">
+    <strong>Start with</strong> <a href="overseas/math-explosion-html-v2.html">math-explosion-html-v2.html</a> or <a href="domestic/mathfx-qwen.html">mathfx-qwen.html</a> — zero dependencies, so they work without a network.
+    The two <code>.tsx</code> files are React components; opening them in a browser shows source text, which is expected — there is no build config in this repo.
+    Attribution of each file to a model comes from the filename and the model's own note inside the file; there is no original prompt transcript kept, so these are "several models handed the same requirement", not "the same prompt verbatim".
+    No demo images are shipped: the originals were generated from real photographs.
+  </div>
+
+  <footer>
+    MIT · <a href="https://github.com/cosmowind/flymath">github.com/cosmowind/flymath</a> · <a href="https://github.com/cosmowind/flymath#readme">full README with the per-file evidence</a> · this index is a single static file that makes no external requests
+  </footer>
+</main>
+</body>
+</html>
